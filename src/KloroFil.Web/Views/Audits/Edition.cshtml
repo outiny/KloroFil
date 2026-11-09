@@ -1,0 +1,25 @@
+@model Audit
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvel audit" : "Audit";
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvel audit / inspection" : "Modifier l'audit")</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ"><label asp-for="Date"></label><input asp-for="Date" type="date" /></div>
+        <div class="champ"><label asp-for="Type"></label><select asp-for="Type" asp-items="Affichage.Choix(Model.Type)"></select></div>
+        <div class="champ"><label asp-for="SiteId"></label><select asp-for="SiteId" asp-items="ViewBag.Sites"><option value="">Tous les sites</option></select></div>
+        <div class="champ"><label asp-for="Auditeur"></label><input asp-for="Auditeur" /></div>
+        <div class="champ champ--large"><label asp-for="Perimetre"></label><input asp-for="Perimetre" /></div>
+        <div class="champ"><label asp-for="NcMajeures"></label><input asp-for="NcMajeures" type="number" min="0" /></div>
+        <div class="champ"><label asp-for="NcMineures"></label><input asp-for="NcMineures" type="number" min="0" /></div>
+        <div class="champ"><label asp-for="Observations"></label><input asp-for="Observations" type="number" min="0" /></div>
+        <div class="champ champ--large"><label asp-for="Rapport"></label><input asp-for="Rapport" placeholder="https://… ou \\serveur\partage\rapport.pdf" /></div>
+        <div class="champ champ--large"><label asp-for="Conclusion"></label><textarea asp-for="Conclusion" rows="5"></textarea></div>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="@(nouveau ? "Index" : "Details")" asp-route-id="@(nouveau ? null : Model.Id)">Annuler</a>
+        </div>
+    </div>
+</form>

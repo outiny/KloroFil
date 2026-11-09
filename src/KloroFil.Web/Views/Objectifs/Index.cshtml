@@ -1,0 +1,45 @@
+@model List<ObjectifEnvironnemental>
+@{
+    ViewData["Title"] = "Objectifs environnementaux";
+    var gerer = User.PeutGerer();
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Objectifs environnementaux</h1>
+        <p class="sous-titre">ISO 14001 § 6.2 · @Model.Count objectif(s)</p>
+    </div>
+    @if (gerer)
+    {
+        <a class="btn btn--primaire" asp-action="Edition">Ajouter un objectif</a>
+    }
+</div>
+
+<div class="carte defile">
+    @if (Model.Count == 0)
+    {
+        <p class="vide">Aucun objectif défini.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Objectif</th><th>Domaine</th><th>Indicateur</th><th>Référence</th><th>Cible</th><th>Actuel</th><th>Échéance</th><th>Responsable</th><th>Avancement</th><th>Statut</th></tr></thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td>@if (gerer) { <a class="reference" asp-action="Edition" asp-route-id="@o.Id">@o.Intitule</a> } else { @o.Intitule }</td>
+                        <td>@o.Domaine.Libelle()</td>
+                        <td>@o.Indicateur.Texte()</td>
+                        <td>@o.ValeurReference.Texte()</td>
+                        <td>@o.Cible.Texte()</td>
+                        <td>@o.ValeurActuelle.Texte()</td>
+                        <td>@o.Echeance.Date()</td>
+                        <td>@o.Responsable.Texte()</td>
+                        <td style="min-width:120px"><div class="discret">@o.Avancement %</div><div class="jauge"><span style="width:@o.Avancement%; background:@Affichage.CouleurAvancement(o.Avancement)"></span></div></td>
+                        <td><span class="badge badge--@o.Statut.Couleur()">@o.Statut.Libelle()</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

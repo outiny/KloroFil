@@ -1,0 +1,69 @@
+@model List<Prescription>
+@{
+    ViewData["Title"] = "Prescriptions ICPE";
+    string filtre = ViewBag.Filtre ?? "";
+    string Onglet(string f) => filtre == f ? "is-active" : "";
+    var retour = Context.Request.Path + Context.Request.QueryString;
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Prescriptions et échéancier ICPE</h1>
+        <p class="sous-titre">@Model.Count prescription(s) · contrôles périodiques, mesures, déclarations</p>
+    </div>
+    @if (User.PeutGerer())
+    {
+        <a class="btn btn--primaire" asp-action="Edition">Ajouter une prescription</a>
+    }
+</div>
+
+<div class="onglets">
+    <a class="@Onglet("")" asp-route-filtre="">Toutes</a>
+    <a class="@Onglet("retard")" asp-route-filtre="retard">En retard</a>
+    <a class="@Onglet("avenir")" asp-route-filtre="avenir">À 60 jours</a>
+    <a class="@Onglet("nc")" asp-route-filtre="nc">Non conformes</a>
+</div>
+<form method="get" class="filtres">
+    <input type="hidden" name="filtre" value="@filtre" />
+    <select name="siteId" asp-items="ViewBag.Sites" onchange="this.form.submit()"><option value="">Tous les sites</option></select>
+    <input type="search" name="q" value="@ViewBag.Q" placeholder="Rechercher…" />
+    <button class="btn btn--secondaire">Filtrer</button>
+</form>
+
+<div class="carte defile">
+    @if (Model.Count == 0)
+    {
+        <p class="vide">Aucune prescription.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Échéance</th><th>Prescription</th><th>Site</th><th>Origine</th><th>Périodicité</th><th>Dernière</th><th>Responsable</th><th>Conformité</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr class="@(p.EnRetard ? "retard" : "")">
+                        <td class="@(p.EnRetard ? "retard-texte" : "")">@p.ProchaineEcheance.Date()</td>
+                        <td><a class="reference" asp-action="Edition" asp-route-id="@p.Id">@p.Intitule</a><div class="discret">@p.Domaine.Libelle()</div></td>
+                        <td>@p.Site?.Nom</td>
+                        <td>@p.Source @(p.Article is null ? "" : "art. " + p.Article)</td>
+                        <td>@p.Periodicite.Libelle()</td>
+                        <td>@p.DerniereRealisation.Date()</td>
+                        <td>@p.Responsable.Texte()</td>
+                        <td><span class="badge badge--@p.Conformite.Couleur()">@p.Conformite.Libelle()</span></td>
+                        <td>
+                            <div class="actions">
+                                @if (User.PeutSaisir())
+                                {
+                                    <form asp-action="Realiser" asp-route-id="@p.Id" asp-route-retour="@retour" method="post">
+                                        <button class="btn btn--secondaire btn--petit" title="Enregistrer une réalisation aujourd'hui et reporter l'échéance">Réalisé</button>
+                                    </form>
+                                    <a class="btn btn--secondaire btn--petit" asp-controller="Actions" asp-action="Edition" asp-route-prescriptionId="@p.Id">+ Action</a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

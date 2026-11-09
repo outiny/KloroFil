@@ -1,0 +1,109 @@
+@model Site
+@{
+    ViewData["Title"] = Model.Nom;
+    var gerer = User.PeutGerer();
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">@Model.Nom</h1>
+        <p class="sous-titre"><span class="badge badge--@Model.Regime.Couleur()">@Model.Regime.Libelle()</span> · @Model.Seveso.Libelle() @(Model.Ied ? "· IED" : "")</p>
+    </div>
+    @if (gerer)
+    {
+        <div class="actions">
+            <a class="btn btn--secondaire" asp-action="Edition" asp-route-id="@Model.Id">Modifier</a>
+            <partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer ce site, ses rubriques et ses prescriptions ?"))" />
+        </div>
+    }
+</div>
+
+<div class="carte">
+    <h2 class="carte__titre">Situation administrative</h2>
+    <dl class="fiche">
+        <div><dt>Adresse</dt><dd>@Model.Adresse.Texte()<br />@Model.CodePostal @Model.Commune</dd></div>
+        <div><dt>Code AIOT (Géorisques)</dt><dd>@Model.CodeAiot.Texte()</dd></div>
+        <div><dt>Acte de référence</dt><dd>@Model.ActeReference.Texte() @(Model.DateActe is null ? "" : "du " + Model.DateActe.Date())</dd></div>
+        <div><dt>Inspecteur / DREAL</dt><dd>@Model.Inspecteur.Texte()</dd></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="large"><dt>Notes</dt><dd class="texte-long">@Model.Notes</dd></div>
+        }
+    </dl>
+</div>
+
+<div class="carte defile">
+    <h2 class="carte__titre">
+        Tableau des rubriques ICPE
+        @if (gerer)
+        {
+            <a asp-action="Classement" asp-route-siteId="@Model.Id">+ Ajouter une rubrique</a>
+        }
+    </h2>
+    @if (Model.Classements.Count == 0)
+    {
+        <p class="vide">Aucune rubrique déclarée. Les numéros de rubrique servent aussi à repérer les textes de veille qui vous concernent.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Rubrique</th><th>Alinéa</th><th>Activité</th><th>Volume</th><th>Régime</th><th>Arrêté ministériel</th>@if (gerer) { <th></th> }</tr></thead>
+            <tbody>
+                @foreach (var c in Model.Classements)
+                {
+                    <tr>
+                        <td><strong>@c.Rubrique</strong></td>
+                        <td>@c.Alinea.Texte()</td>
+                        <td>@c.Designation</td>
+                        <td>@c.Volume.Texte()</td>
+                        <td><span class="badge badge--@c.Regime.Couleur()">@c.Regime.Abrege()</span></td>
+                        <td>@c.ArreteMinisteriel.Texte()</td>
+                        @if (gerer)
+                        {
+                            <td>
+                                <div class="actions">
+                                    <a class="btn btn--secondaire btn--petit" asp-action="Classement" asp-route-id="@c.Id" asp-route-siteId="@Model.Id">Modifier</a>
+                                    <form asp-action="SupprimerClassement" asp-route-id="@c.Id" method="post" onsubmit="return confirm('Supprimer cette rubrique ?')">
+                                        <button class="btn btn--danger btn--petit">Supprimer</button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="carte defile">
+    <h2 class="carte__titre">
+        Prescriptions et contrôles périodiques
+        @if (gerer)
+        {
+            <a asp-controller="Prescriptions" asp-action="Edition" asp-route-siteId="@Model.Id">+ Ajouter une prescription</a>
+        }
+    </h2>
+    @if (Model.Prescriptions.Count == 0)
+    {
+        <p class="vide">Aucune prescription. Saisissez les obligations de vos arrêtés (contrôles, mesures, déclarations annuelles…).</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Échéance</th><th>Prescription</th><th>Origine</th><th>Périodicité</th><th>Responsable</th><th>Conformité</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.Prescriptions)
+                {
+                    <tr class="@(p.EnRetard ? "retard" : "")">
+                        <td class="@(p.EnRetard ? "retard-texte" : "")">@p.ProchaineEcheance.Date()</td>
+                        <td><a class="reference" asp-controller="Prescriptions" asp-action="Edition" asp-route-id="@p.Id">@p.Intitule</a></td>
+                        <td>@p.Source @(p.Article is null ? "" : "art. " + p.Article)</td>
+                        <td>@p.Periodicite.Libelle()</td>
+                        <td>@p.Responsable.Texte()</td>
+                        <td><span class="badge badge--@p.Conformite.Couleur()">@p.Conformite.Libelle()</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

@@ -1,0 +1,140 @@
+@model TexteReglementaire
+@{
+    ViewData["Title"] = "Texte réglementaire";
+    var gerer = User.PeutGerer();
+    var saisir = User.PeutSaisir();
+    List<ActionQse> actions = ViewBag.Actions;
+}
+<div class="entete-page">
+    <div style="max-width:900px">
+        <h1 class="titre">@Model.Titre</h1>
+        <p class="sous-titre">
+            <span class="badge badge--@Model.Statut.Couleur()">@Model.Statut.Libelle()</span>
+            · @Model.Type.Libelle() · @Model.Domaine.Libelle()
+            @if (Model.RubriquesConcernees is not null) { <text>· <span class="badge badge--rouge">Rubrique(s) @Model.RubriquesConcernees</span></text> }
+        </p>
+    </div>
+    @if (gerer)
+    {
+        <div class="actions">
+            <a class="btn btn--secondaire" asp-action="Edition" asp-route-id="@Model.Id">Modifier / analyser</a>
+            <partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer ce texte et ses exigences ?"))" />
+        </div>
+    }
+</div>
+
+@if (gerer && Model.Statut == StatutVeille.AAnalyser)
+{
+    <div class="alerte alerte--info actions">
+        <span>Ce texte n'a pas encore été analysé. Le classer :</span>
+        @foreach (var s in new[] { StatutVeille.Applicable, StatutVeille.PourInformation, StatutVeille.NonApplicable })
+        {
+            <form asp-action="Qualifier" asp-route-id="@Model.Id" asp-route-statut="@s" method="post">
+                <button class="btn btn--secondaire btn--petit">@s.Libelle()</button>
+            </form>
+        }
+    </div>
+}
+
+<div class="carte">
+    <h2 class="carte__titre">Fiche du texte</h2>
+    <dl class="fiche">
+        <div><dt>Référence</dt><dd>@Model.Reference.Texte()</dd></div>
+        <div><dt>Publication</dt><dd>@Model.DatePublication.Date()</dd></div>
+        <div><dt>Application</dt><dd>@Model.DateApplication.Date()</dd></div>
+        <div><dt>Détecté le</dt><dd>@Model.DateDetection.Date() @(Model.SourceVeille is null ? "(saisie manuelle)" : "via " + Model.SourceVeille.Nom)</dd></div>
+        <div><dt>Analysé</dt><dd>@(Model.AnalyseLe is null ? "–" : Model.AnalyseLe.Date() + " par " + Model.AnalysePar.Texte())</dd></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Url))
+        {
+            <div><dt>Lien</dt><dd><a href="@Model.Url" target="_blank" rel="noopener noreferrer">Consulter le texte ↗</a></dd></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Resume))
+        {
+            <div class="large"><dt>Résumé</dt><dd class="texte-long">@Model.Resume</dd></div>
+        }
+        <div class="large"><dt>Analyse / impact pour l'entreprise</dt><dd class="texte-long">@Model.Analyse.Texte()</dd></div>
+    </dl>
+</div>
+
+<div class="carte defile">
+    <h2 class="carte__titre">
+        Exigences applicables et évaluation de conformité
+        @if (gerer)
+        {
+            <a asp-action="Exigence" asp-route-texteId="@Model.Id">+ Ajouter une exigence</a>
+        }
+    </h2>
+    @if (Model.Exigences.Count == 0)
+    {
+        <p class="vide">Aucune exigence. Pour un texte applicable, décomposez-le en exigences à évaluer périodiquement.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Article</th><th>Exigence</th><th>Conformité</th><th>Évaluée</th><th>Prochaine</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var e in Model.Exigences)
+                {
+                    var echue = e.ProchaineEvaluation is { } pe && pe < DateTime.Today;
+                    <tr class="@(echue ? "retard" : "")">
+                        <td>@e.Article.Texte()</td>
+                        <td>@e.Description @if (!string.IsNullOrWhiteSpace(e.Preuves)) { <div class="discret">@e.Preuves</div> }</td>
+                        <td><span class="badge badge--@e.Conformite.Couleur()">@e.Conformite.Libelle()</span></td>
+                        <td>@e.DateEvaluation.Date() <div class="discret">@e.EvaluePar</div></td>
+                        <td class="@(echue ? "retard-texte" : "")">@e.ProchaineEvaluation.Date()</td>
+                        <td>
+                            <div class="actions">
+                                @if (saisir)
+                                {
+                                    <a class="btn btn--secondaire btn--petit" asp-action="Exigence" asp-route-id="@e.Id" asp-route-texteId="@Model.Id">Évaluer</a>
+                                    @if (e.Conformite is Conformite.NonConforme or Conformite.Partielle)
+                                    {
+                                        <a class="btn btn--secondaire btn--petit" asp-controller="Actions" asp-action="Edition" asp-route-exigenceId="@e.Id">+ Action</a>
+                                    }
+                                }
+                                @if (gerer)
+                                {
+                                    <form asp-action="SupprimerExigence" asp-route-id="@e.Id" method="post" onsubmit="return confirm('Supprimer cette exigence ?')">
+                                        <button class="btn btn--danger btn--petit">Supprimer</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="carte defile">
+    <h2 class="carte__titre">
+        Actions liées
+        @if (saisir)
+        {
+            <a asp-controller="Actions" asp-action="Edition" asp-route-texteId="@Model.Id">+ Créer une action</a>
+        }
+    </h2>
+    @if (actions.Count == 0)
+    {
+        <p class="vide">Aucune action liée à ce texte.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>N°</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Statut</th></tr></thead>
+            <tbody>
+                @foreach (var a in actions)
+                {
+                    <tr class="@(a.EnRetard ? "retard" : "")">
+                        <td><a class="reference" asp-controller="Actions" asp-action="Edition" asp-route-id="@a.Id">@a.Numero</a></td>
+                        <td>@a.Titre</td>
+                        <td>@a.Responsable.Texte()</td>
+                        <td class="@(a.EnRetard ? "retard-texte" : "")">@a.Echeance.Date()</td>
+                        <td><span class="badge badge--@a.Statut.Couleur()">@a.Statut.Libelle()</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

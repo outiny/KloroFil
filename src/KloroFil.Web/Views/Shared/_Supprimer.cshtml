@@ -1,0 +1,5 @@
+@* Bouton de suppression avec confirmation. Modèle : (action, id, message). *@
+@model (string Action, int Id, string Message)
+<form asp-action="@Model.Action" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Message))')">
+    <button class="btn btn--danger">Supprimer</button>
+</form>

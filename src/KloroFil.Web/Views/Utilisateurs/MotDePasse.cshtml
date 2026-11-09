@@ -1,0 +1,16 @@
+@model NouveauMotDePasseVm
+@{
+    ViewData["Title"] = "Réinitialiser le mot de passe";
+}
+<form method="post" asp-action="MotDePasse" asp-route-id="@Model.Id" class="carte carte-etroite">
+    <h1 class="carte__titre">Nouveau mot de passe pour @Model.Email</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="MotDePasse"></label><input asp-for="MotDePasse" autocomplete="new-password" /><span asp-validation-for="MotDePasse"></span></div>
+        <div class="champ champ--large"><label asp-for="Confirmation"></label><input asp-for="Confirmation" autocomplete="new-password" /><span asp-validation-for="Confirmation"></span></div>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>

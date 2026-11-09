@@ -1,0 +1,12 @@
+@model string
+@{
+    ViewData["Title"] = "Erreur";
+}
+<div class="carte carte-etroite">
+    <h1 class="carte__titre">Une erreur est survenue</h1>
+    <div class="formulaire">
+        <p class="champ--large">La demande n'a pas pu aboutir. Si le problème persiste, communiquez cette référence à l'administrateur :</p>
+        <p class="champ--large discret">@Model</p>
+        <div class="actions champ--large"><a class="btn btn--primaire" asp-controller="Home" asp-action="Index">Retour à l'accueil</a></div>
+    </div>
+</div>

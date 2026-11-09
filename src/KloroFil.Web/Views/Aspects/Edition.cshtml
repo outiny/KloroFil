@@ -1,0 +1,44 @@
+@model AspectEnvironnemental
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvel aspect" : "Aspect environnemental";
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvel aspect environnemental" : "Aspect environnemental")</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ"><label asp-for="SiteId"></label><select asp-for="SiteId" asp-items="ViewBag.Sites"><option value="">Tous les sites</option></select></div>
+        <div class="champ"><label asp-for="Activite"></label><input asp-for="Activite" placeholder="Peinture, soudure, cuisson…" /><span asp-validation-for="Activite"></span></div>
+        <div class="champ"><label asp-for="Aspect"></label><input asp-for="Aspect" placeholder="Émissions de COV" /><span asp-validation-for="Aspect"></span></div>
+        <div class="champ"><label asp-for="Impact"></label><input asp-for="Impact" placeholder="Pollution de l'air" /><span asp-validation-for="Impact"></span></div>
+        <div class="champ"><label asp-for="Domaine"></label><select asp-for="Domaine" asp-items="Affichage.Choix(Model.Domaine)"></select></div>
+        <div class="champ"><label asp-for="Situation"></label><select asp-for="Situation" asp-items="Affichage.Choix(Model.Situation)"></select></div>
+
+        <p class="separateur">Cotation</p>
+        <div class="champ"><label asp-for="Gravite"></label><input asp-for="Gravite" type="number" min="1" max="5" oninput="coter()" /><span asp-validation-for="Gravite"></span></div>
+        <div class="champ"><label asp-for="Frequence"></label><input asp-for="Frequence" type="number" min="1" max="5" oninput="coter()" /><span asp-validation-for="Frequence"></span></div>
+        <div class="champ"><label asp-for="Maitrise"></label><input asp-for="Maitrise" type="number" min="1" max="5" oninput="coter()" /><span asp-validation-for="Maitrise"></span></div>
+        <div class="champ"><label>Criticité</label><p id="criticite" style="font-size:1.4rem; font-weight:600; margin:6px 0">@Model.Criticite</p></div>
+        <label class="case champ--large"><input asp-for="ExigenceLegale" /> Aspect soumis à une exigence légale (rend l'aspect significatif)</label>
+        <div class="champ champ--large"><label asp-for="MesuresMaitrise"></label><textarea asp-for="MesuresMaitrise" placeholder="Rétention, filtration, procédure, formation…"></textarea></div>
+
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>
+@if (!nouveau)
+{
+    <div class="actions"><partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer cet aspect ?"))" /></div>
+}
+<script>
+    function coter() {
+        const v = id => parseInt(document.getElementById(id).value) || 0;
+        const c = v('Gravite') * v('Frequence') * v('Maitrise');
+        const el = document.getElementById('criticite');
+        el.textContent = c + (c >= @AspectEnvironnemental.SeuilSignificatif || v('Gravite') === 5 ? ' · significatif' : '');
+        el.style.color = c >= @AspectEnvironnemental.SeuilSignificatif || v('Gravite') === 5 ? 'var(--rouge-texte)' : 'var(--vert-fonce)';
+    }
+    coter();
+</script>

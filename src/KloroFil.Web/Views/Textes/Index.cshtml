@@ -1,0 +1,84 @@
+@model List<TexteReglementaire>
+@{
+    ViewData["Title"] = "Veille réglementaire";
+    StatutVeille? statut = ViewBag.Statut;
+    Domaine? domaine = ViewBag.Domaine;
+    Dictionary<StatutVeille, int> compteurs = ViewBag.Compteurs;
+    int N(StatutVeille s) => compteurs.GetValueOrDefault(s);
+    var gerer = User.PeutGerer();
+    var retour = Context.Request.Path + Context.Request.QueryString;
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Veille réglementaire</h1>
+        <p class="sous-titre">Registre des textes environnementaux et ICPE · @compteurs.Values.Sum() texte(s)</p>
+    </div>
+    <div class="actions">
+        <a class="btn btn--secondaire" asp-action="Registre">Registre de conformité</a>
+        @if (gerer)
+        {
+            <form asp-action="LancerVeille" method="post"><button class="btn btn--secondaire">Lancer la veille</button></form>
+            <a class="btn btn--primaire" asp-action="Edition">Ajouter un texte</a>
+        }
+    </div>
+</div>
+
+<div class="onglets">
+    <a class="@(statut is null ? "is-active" : "")" asp-route-statut="" asp-route-domaine="@domaine">Tous</a>
+    @foreach (var s in Enum.GetValues<StatutVeille>())
+    {
+        <a class="@(statut == s ? "is-active" : "")" asp-route-statut="@s" asp-route-domaine="@domaine">@s.Libelle() (@N(s))</a>
+    }
+</div>
+<form method="get" class="filtres">
+    <input type="hidden" name="statut" value="@statut" />
+    <select name="domaine" asp-items="Affichage.Choix(domaine)" onchange="this.form.submit()"><option value="">Tous les domaines</option></select>
+    <input type="search" name="q" value="@ViewBag.Q" placeholder="Titre, NOR, rubrique…" />
+    <button class="btn btn--secondaire">Filtrer</button>
+</form>
+
+<div class="carte defile">
+    @if (Model.Count == 0)
+    {
+        <p class="vide">Aucun texte pour ces critères.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Publication</th><th>Texte</th><th>Type</th><th>Domaine</th><th>Rubriques</th><th class="nombre">Exigences</th><th>Statut</th>@if (gerer) { <th>Qualifier</th> }</tr></thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td>@((t.DatePublication ?? t.DateDetection).Date())</td>
+                        <td>
+                            <a class="reference" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
+                            @if (t.Reference is not null) { <div class="discret">@t.Reference</div> }
+                        </td>
+                        <td>@t.Type.Libelle()</td>
+                        <td>@t.Domaine.Libelle()</td>
+                        <td>@if (t.RubriquesConcernees is not null) { <span class="badge badge--rouge">@t.RubriquesConcernees</span> }</td>
+                        <td class="nombre">@t.Exigences.Count</td>
+                        <td><span class="badge badge--@t.Statut.Couleur()">@t.Statut.Libelle()</span></td>
+                        @if (gerer)
+                        {
+                            <td>
+                                @if (t.Statut == StatutVeille.AAnalyser)
+                                {
+                                    <div class="actions">
+                                        @foreach (var (s, l) in new[] { (StatutVeille.Applicable, "Applicable"), (StatutVeille.PourInformation, "Info"), (StatutVeille.NonApplicable, "Non app.") })
+                                        {
+                                            <form asp-action="Qualifier" asp-route-id="@t.Id" asp-route-statut="@s" asp-route-retour="@retour" method="post">
+                                                <button class="btn btn--secondaire btn--petit">@l</button>
+                                            </form>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

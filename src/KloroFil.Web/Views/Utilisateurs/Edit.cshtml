@@ -1,0 +1,37 @@
+@model EditionUtilisateurVm
+@{
+    ViewData["Title"] = Model.Email;
+    var moi = Model.Email == User.Identity?.Name;
+}
+<form method="post" asp-action="Edit" asp-route-id="@Model.Id" class="carte carte-etroite">
+    <h1 class="carte__titre">@Model.Email</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ"><label asp-for="NomComplet"></label><input asp-for="NomComplet" autocomplete="off" /></div>
+        <div class="champ"><label asp-for="Fonction"></label><input asp-for="Fonction" autocomplete="off" /></div>
+        @if (moi)
+        {
+            <p class="aide champ--large">Rôle : @RolesKloroFil.Libelle(Model.Role). Vous ne pouvez pas modifier votre propre rôle ni bloquer votre compte.</p>
+            <input type="hidden" asp-for="Role" />
+            <input type="hidden" asp-for="Actif" />
+        }
+        else
+        {
+            <div class="champ champ--large">
+                <label asp-for="Role"></label>
+                <select asp-for="Role">
+                    @foreach (var r in RolesKloroFil.Tous)
+                    {
+                        <option value="@r" selected="@(r == Model.Role)">@RolesKloroFil.Description(r)</option>
+                    }
+                </select>
+            </div>
+            <label class="case champ--large"><input asp-for="Actif" /> Compte actif</label>
+        }
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="MotDePasse" asp-route-id="@Model.Id">Réinitialiser le mot de passe</a>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>

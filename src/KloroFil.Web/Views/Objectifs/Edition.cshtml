@@ -1,0 +1,30 @@
+@model ObjectifEnvironnemental
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvel objectif" : "Objectif";
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvel objectif environnemental" : "Objectif environnemental")</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Intitule"></label><input asp-for="Intitule" placeholder="Réduire de 10 % la consommation de gaz du four de cuisson" /><span asp-validation-for="Intitule"></span></div>
+        <div class="champ"><label asp-for="Domaine"></label><select asp-for="Domaine" asp-items="Affichage.Choix(Model.Domaine)"></select></div>
+        <div class="champ"><label asp-for="Indicateur"></label><input asp-for="Indicateur" placeholder="kWh PCS / tonne produite" /></div>
+        <div class="champ"><label asp-for="ValeurReference"></label><input asp-for="ValeurReference" /></div>
+        <div class="champ"><label asp-for="Cible"></label><input asp-for="Cible" /></div>
+        <div class="champ"><label asp-for="ValeurActuelle"></label><input asp-for="ValeurActuelle" /></div>
+        <div class="champ"><label asp-for="Echeance"></label><input asp-for="Echeance" type="date" /></div>
+        <div class="champ"><label asp-for="Responsable"></label><input asp-for="Responsable" list="responsables" /></div>
+        <div class="champ"><label asp-for="Avancement"></label><input asp-for="Avancement" type="number" min="0" max="100" step="5" /><span asp-validation-for="Avancement"></span></div>
+        <div class="champ"><label asp-for="Statut"></label><select asp-for="Statut" asp-items="Affichage.Choix(Model.Statut)"></select></div>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>
+@if (!nouveau)
+{
+    <div class="actions"><partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer cet objectif ?"))" /></div>
+}
+<partial name="_Responsables" />

@@ -1,0 +1,59 @@
+@model List<LigneUtilisateur>
+@{
+    ViewData["Title"] = "Utilisateurs";
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Utilisateurs</h1>
+        <p class="sous-titre">@Model.Count compte(s)</p>
+    </div>
+    <a class="btn btn--primaire" asp-action="Create">Ajouter un utilisateur</a>
+</div>
+
+<div class="carte defile">
+    <table class="table">
+        <thead><tr><th>Email</th><th>Nom</th><th>Fonction</th><th>Rôle</th><th>État</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td><a class="reference" asp-action="Edit" asp-route-id="@u.Id">@u.Email</a></td>
+                    <td>@u.NomComplet.Texte()</td>
+                    <td>@u.Fonction.Texte()</td>
+                    <td>@RolesKloroFil.Libelle(u.Role)</td>
+                    <td>
+                        @if (u.Actif)
+                        {
+                            <span class="badge badge--vert">Actif</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge--rouge">Bloqué</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <a class="btn btn--secondaire btn--petit" asp-action="MotDePasse" asp-route-id="@u.Id">Mot de passe</a>
+                            @if (u.Email != User.Identity?.Name)
+                            {
+                                <form asp-action="Delete" asp-route-id="@u.Id" method="post" onsubmit="return confirm('Supprimer ce compte ?')">
+                                    <button class="btn btn--danger btn--petit">Supprimer</button>
+                                </form>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="carte">
+    <h2 class="carte__titre">Rôles</h2>
+    <ul>
+        @foreach (var r in RolesKloroFil.Tous)
+        {
+            <li>@RolesKloroFil.Description(r)</li>
+        }
+    </ul>
+</div>

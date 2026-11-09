@@ -1,0 +1,50 @@
+@model List<SourceVeille>
+@{
+    ViewData["Title"] = "Sources de veille";
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Sources de veille</h1>
+        <p class="sous-titre">Flux RSS / Atom lus automatiquement ; les nouveautés filtrées par mots-clés arrivent dans la veille « À analyser ».</p>
+    </div>
+    <a class="btn btn--primaire" asp-action="Edition">Ajouter une source</a>
+</div>
+
+<div class="carte defile">
+    @if (Model.Count == 0)
+    {
+        <p class="vide">
+            Aucune source. Ajoutez par exemple le flux RSS de votre service de veille (AIDA / INERIS, Légifrance,
+            site de votre DREAL, newsletter d'un organisme professionnel…) et des mots-clés comme
+            « ICPE, installations classées, 2565, déchets, rejets ».
+        </p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Source</th><th>Mots-clés</th><th>Domaine</th><th>Dernière lecture</th><th>Résultat</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td>
+                            <a class="reference" asp-action="Edition" asp-route-id="@s.Id">@s.Nom</a>
+                            @if (!s.Active) { <span class="badge badge--gris">inactive</span> }
+                            <div class="discret" style="overflow-wrap:anywhere">@s.Url</div>
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(s.MotsCles) ? "(tout le flux)" : s.MotsCles)</td>
+                        <td>@s.Domaine.Libelle()</td>
+                        <td>@s.DerniereLecture.DateHeure()</td>
+                        <td class="@(s.DernierResultat?.StartsWith("Erreur") == true ? "retard-texte" : "")">@s.DernierResultat.Texte()</td>
+                        <td>
+                            <div class="actions">
+                                <form asp-action="Lire" asp-route-id="@s.Id" method="post"><button class="btn btn--secondaire btn--petit">Lire maintenant</button></form>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Supprimer cette source ?')"><button class="btn btn--danger btn--petit">Supprimer</button></form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

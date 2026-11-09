@@ -1,0 +1,38 @@
+@model Exigence
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvelle exigence" : "Évaluation de conformité";
+    var gerer = User.PeutGerer();
+}
+<form method="post" asp-action="Exigence" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvelle exigence" : "Évaluation de conformité")</h1>
+    <input type="hidden" asp-for="TexteReglementaireId" />
+    <div class="formulaire">
+        <p class="champ--large discret">@Model.Texte?.Titre</p>
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        @if (gerer)
+        {
+            <div class="champ"><label asp-for="Article"></label><input asp-for="Article" /></div>
+            <div class="champ champ--large"><label asp-for="Description"></label><textarea asp-for="Description" rows="3"></textarea><span asp-validation-for="Description"></span></div>
+        }
+        else
+        {
+            <input type="hidden" asp-for="Article" />
+            <input type="hidden" asp-for="Description" />
+            <div class="champ champ--large"><label>Exigence @Model.Article</label><p class="texte-long">@Model.Description</p></div>
+        }
+
+        <p class="separateur">Évaluation</p>
+        <div class="champ"><label asp-for="Conformite"></label><select asp-for="Conformite" asp-items="Affichage.Choix(Model.Conformite)"></select></div>
+        <div class="champ"><label asp-for="DateEvaluation"></label><input asp-for="DateEvaluation" type="date" /></div>
+        <div class="champ"><label asp-for="EvaluePar"></label><input asp-for="EvaluePar" list="responsables" /></div>
+        <div class="champ"><label asp-for="ProchaineEvaluation"></label><input asp-for="ProchaineEvaluation" type="date" /><span class="aide">Par défaut : un an après l'évaluation.</span></div>
+        <div class="champ champ--large"><label asp-for="Preuves"></label><textarea asp-for="Preuves" placeholder="Rapport de contrôle, enregistrement, constat…"></textarea></div>
+
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Details" asp-route-id="@Model.TexteReglementaireId">Annuler</a>
+        </div>
+    </div>
+</form>
+<partial name="_Responsables" />

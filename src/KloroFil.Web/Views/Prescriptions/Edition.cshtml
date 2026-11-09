@@ -1,0 +1,44 @@
+@model Prescription
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvelle prescription" : Model.Intitule;
+    var gerer = User.PeutGerer();
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvelle prescription" : Model.Intitule)</h1>
+    <fieldset disabled="@(!gerer)" style="border:0; padding:0; margin:0">
+        <div class="formulaire">
+            <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+            <div class="champ"><label asp-for="SiteId"></label><select asp-for="SiteId" asp-items="ViewBag.Sites"></select><span asp-validation-for="SiteId"></span></div>
+            <div class="champ"><label asp-for="Domaine"></label><select asp-for="Domaine" asp-items="Affichage.Choix(Model.Domaine)"></select></div>
+            <div class="champ"><label asp-for="Source"></label><input asp-for="Source" placeholder="AP du 12/03/2019 / AM du 14/01/2000" /><span asp-validation-for="Source"></span></div>
+            <div class="champ"><label asp-for="Article"></label><input asp-for="Article" /></div>
+            <div class="champ champ--large"><label asp-for="Intitule"></label><input asp-for="Intitule" placeholder="Contrôle annuel des rejets atmosphériques" /><span asp-validation-for="Intitule"></span></div>
+            <div class="champ champ--large"><label asp-for="Description"></label><textarea asp-for="Description"></textarea></div>
+
+            <p class="separateur">Suivi</p>
+            <div class="champ"><label asp-for="Periodicite"></label><select asp-for="Periodicite" asp-items="Affichage.Choix(Model.Periodicite)"></select></div>
+            <div class="champ"><label asp-for="DerniereRealisation"></label><input asp-for="DerniereRealisation" type="date" /></div>
+            <div class="champ"><label asp-for="ProchaineEcheance"></label><input asp-for="ProchaineEcheance" type="date" /><span class="aide">Laissée vide, elle est calculée d'après la périodicité.</span></div>
+            <div class="champ"><label asp-for="Responsable"></label><input asp-for="Responsable" list="responsables" /></div>
+            <div class="champ"><label asp-for="Conformite"></label><select asp-for="Conformite" asp-items="Affichage.Choix(Model.Conformite)"></select></div>
+            <div class="champ champ--large"><label asp-for="Commentaire"></label><textarea asp-for="Commentaire"></textarea></div>
+
+            <div class="actions champ--large">
+                @if (gerer)
+                {
+                    <button class="btn btn--primaire">Enregistrer</button>
+                }
+                <a class="btn btn--secondaire" asp-action="Index">Retour</a>
+            </div>
+        </div>
+    </fieldset>
+</form>
+@if (!nouveau && gerer)
+{
+    <div class="actions">
+        <a class="btn btn--secondaire" asp-controller="Actions" asp-action="Edition" asp-route-prescriptionId="@Model.Id">Créer une action liée</a>
+        <partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer cette prescription ?"))" />
+    </div>
+}
+<partial name="_Responsables" />

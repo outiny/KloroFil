@@ -1,0 +1,30 @@
+@model Site
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouveau site" : Model.Nom;
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouveau site" : "Modifier « " + Model.Nom + " »")</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Nom"></label><input asp-for="Nom" /><span asp-validation-for="Nom"></span></div>
+        <div class="champ champ--large"><label asp-for="Adresse"></label><input asp-for="Adresse" /></div>
+        <div class="champ"><label asp-for="CodePostal"></label><input asp-for="CodePostal" /></div>
+        <div class="champ"><label asp-for="Commune"></label><input asp-for="Commune" /></div>
+
+        <p class="separateur">Situation ICPE</p>
+        <div class="champ"><label asp-for="Regime"></label><select asp-for="Regime" asp-items="Affichage.Choix(Model.Regime)"></select></div>
+        <div class="champ"><label asp-for="Seveso"></label><select asp-for="Seveso" asp-items="Affichage.Choix(Model.Seveso)"></select></div>
+        <div class="champ"><label asp-for="CodeAiot"></label><input asp-for="CodeAiot" placeholder="0006xxxxxx" /></div>
+        <label class="case"><input asp-for="Ied" /> Soumis à la directive IED</label>
+        <div class="champ"><label asp-for="ActeReference"></label><input asp-for="ActeReference" placeholder="Arrêté préfectoral d'autorisation n°…" /></div>
+        <div class="champ"><label asp-for="DateActe"></label><input asp-for="DateActe" type="date" /></div>
+        <div class="champ"><label asp-for="Inspecteur"></label><input asp-for="Inspecteur" /></div>
+        <div class="champ champ--large"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="@(nouveau ? "Index" : "Details")" asp-route-id="@(nouveau ? null : Model.Id)">Annuler</a>
+        </div>
+    </div>
+</form>

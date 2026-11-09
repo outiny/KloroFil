@@ -1,0 +1,30 @@
+@model NouvelUtilisateurVm
+@{
+    ViewData["Title"] = "Nouvel utilisateur";
+}
+<form method="post" asp-action="Create" class="carte carte-etroite">
+    <h1 class="carte__titre">Nouvel utilisateur</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="off" placeholder="prenom.nom@guery.com" /><span asp-validation-for="Email"></span></div>
+        <div class="champ"><label asp-for="NomComplet"></label><input asp-for="NomComplet" autocomplete="off" /></div>
+        <div class="champ"><label asp-for="Fonction"></label><input asp-for="Fonction" autocomplete="off" /></div>
+        <div class="champ champ--large">
+            <label asp-for="Role"></label>
+            <select asp-for="Role">
+                @foreach (var r in RolesKloroFil.Tous)
+                {
+                    <option value="@r" selected="@(r == Model.Role)">@RolesKloroFil.Description(r)</option>
+                }
+            </select>
+            <span asp-validation-for="Role"></span>
+        </div>
+        <div class="champ"><label asp-for="MotDePasse"></label><input asp-for="MotDePasse" autocomplete="new-password" /><span asp-validation-for="MotDePasse"></span></div>
+        <div class="champ"><label asp-for="Confirmation"></label><input asp-for="Confirmation" autocomplete="new-password" /><span asp-validation-for="Confirmation"></span></div>
+        <p class="aide champ--large">10 caractères minimum.</p>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Créer le compte</button>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>

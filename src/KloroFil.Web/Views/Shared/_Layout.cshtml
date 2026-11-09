@@ -1,0 +1,93 @@
+@inject KloroFil.Web.Data.KloroFilDbContext Db
+@using Microsoft.EntityFrameworkCore
+@{
+    var controleur = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Actif(params string[] c) => c.Contains(controleur) ? "is-active" : "";
+    var connecte = User.Identity?.IsAuthenticated == true;
+    var aAnalyser = connecte ? await Db.Textes.CountAsync(t => t.Statut == StatutVeille.AAnalyser) : 0;
+    var role = User.IsInRole(RolesKloroFil.Administrateur) ? RolesKloroFil.Administrateur
+        : User.IsInRole(RolesKloroFil.ResponsableQse) ? RolesKloroFil.ResponsableQse
+        : User.IsInRole(RolesKloroFil.Contributeur) ? RolesKloroFil.Contributeur : RolesKloroFil.Lecteur;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#5B8C1E" />
+    <title>@ViewData["Title"] – KloroFil</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="apple-touch-icon" href="~/img/icone-klorofil.png" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="entete">
+        <a class="marque" asp-controller="Home" asp-action="Index">
+            <img class="marque__icone" src="~/img/icone-klorofil.png" alt="" />
+            <img class="marque__logo" src="~/img/logo-guery.png" alt="Guéry – Welding - Environment - Baking" />
+            <span class="marque__appli">
+                <span class="marque__nom">KloroFil</span>
+                <span class="marque__baseline">ISO 14001 · ICPE · Veille réglementaire</span>
+            </span>
+        </a>
+        @if (connecte)
+        {
+            <div class="compte">
+                <a class="compte__nom" asp-controller="Compte" asp-action="MotDePasse" title="Changer mon mot de passe">
+                    @User.Identity!.Name<small>@RolesKloroFil.Libelle(role)</small>
+                </a>
+                <form asp-controller="Compte" asp-action="Deconnexion" method="post">
+                    <button class="btn btn--secondaire">Déconnexion</button>
+                </form>
+            </div>
+        }
+    </header>
+    <div class="bandeau" aria-hidden="true"></div>
+    @if (connecte)
+    {
+        <nav class="nav">
+            <a class="@Actif("Home")" asp-controller="Home" asp-action="Index">Tableau de bord</a>
+            <a class="@Actif("Sites", "Prescriptions")" asp-controller="Sites" asp-action="Index">Sites ICPE</a>
+            <a class="@Actif("Textes")" asp-controller="Textes" asp-action="Index">
+                Veille
+                @if (aAnalyser > 0)
+                {
+                    <span class="pastille" title="Textes à analyser">@aAnalyser</span>
+                }
+            </a>
+            <a class="@Actif("Aspects")" asp-controller="Aspects" asp-action="Index">Aspects</a>
+            <a class="@Actif("Objectifs")" asp-controller="Objectifs" asp-action="Index">Objectifs</a>
+            <a class="@Actif("Actions")" asp-controller="Actions" asp-action="Index">Actions</a>
+            <a class="@Actif("Audits")" asp-controller="Audits" asp-action="Index">Audits</a>
+            <span class="espace"></span>
+            @if (User.PeutGerer())
+            {
+                <a class="@Actif("Sources")" asp-controller="Sources" asp-action="Index">Sources de veille</a>
+            }
+            @if (User.IsInRole(RolesKloroFil.Administrateur))
+            {
+                <a class="@Actif("Utilisateurs")" asp-controller="Utilisateurs" asp-action="Index">Utilisateurs</a>
+            }
+        </nav>
+    }
+    <main class="contenu">
+        @if (TempData["Succes"] is string succes)
+        {
+            <div class="alerte alerte--succes" role="status">@succes</div>
+        }
+        @if (TempData["Info"] is string info)
+        {
+            <div class="alerte alerte--info" role="status">@info</div>
+        }
+        @if (TempData["Erreur"] is string erreur)
+        {
+            <div class="alerte alerte--erreur" role="alert">@erreur</div>
+        }
+        @RenderBody()
+    </main>
+    <footer class="pied">
+        KloroFil · Système de management environnemental ISO 14001 · <img src="~/img/logo-guery.png" alt="Guéry" />
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

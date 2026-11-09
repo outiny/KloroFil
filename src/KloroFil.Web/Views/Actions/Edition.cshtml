@@ -1,0 +1,46 @@
+@model ActionQse
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvelle action" : "Action " + Model.Numero;
+    var saisir = User.PeutSaisir();
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouvelle action" : $"Action {Model.Numero} – créée le {Model.DateCreation.Date()}")</h1>
+    <fieldset disabled="@(!saisir)" style="border:0; padding:0; margin:0">
+        <div class="formulaire">
+            <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+            <div class="champ champ--large"><label asp-for="Titre"></label><input asp-for="Titre" /><span asp-validation-for="Titre"></span></div>
+            <div class="champ champ--large"><label asp-for="Description"></label><textarea asp-for="Description"></textarea></div>
+            <div class="champ"><label asp-for="Type"></label><select asp-for="Type" asp-items="Affichage.Choix(Model.Type)"></select></div>
+            <div class="champ"><label asp-for="Origine"></label><select asp-for="Origine" asp-items="Affichage.Choix(Model.Origine)"></select></div>
+            <div class="champ"><label asp-for="Priorite"></label><select asp-for="Priorite" asp-items="Affichage.Choix(Model.Priorite)"></select></div>
+            <div class="champ"><label asp-for="Responsable"></label><input asp-for="Responsable" list="responsables" /></div>
+            <div class="champ"><label asp-for="Echeance"></label><input asp-for="Echeance" type="date" /></div>
+
+            <p class="separateur">Avancement</p>
+            <div class="champ"><label asp-for="Statut"></label><select asp-for="Statut" asp-items="Affichage.Choix(Model.Statut)"></select></div>
+            <div class="champ"><label asp-for="DateRealisation"></label><input asp-for="DateRealisation" type="date" /></div>
+            <div class="champ champ--large"><label asp-for="Efficacite"></label><textarea asp-for="Efficacite" placeholder="Obligatoire pour clore l'action : mesure, contrôle ou constat montrant que le problème ne se reproduit pas."></textarea><span asp-validation-for="Efficacite"></span></div>
+
+            <p class="separateur">Origine de l'action (facultatif)</p>
+            <div class="champ"><label asp-for="TexteReglementaireId"></label><select asp-for="TexteReglementaireId" asp-items="ViewBag.Textes"><option value="">–</option></select></div>
+            <div class="champ"><label asp-for="ExigenceId"></label><select asp-for="ExigenceId" asp-items="ViewBag.Exigences"><option value="">–</option></select></div>
+            <div class="champ"><label asp-for="PrescriptionId"></label><select asp-for="PrescriptionId" asp-items="ViewBag.Prescriptions"><option value="">–</option></select></div>
+            <div class="champ"><label asp-for="AuditId"></label><select asp-for="AuditId" asp-items="ViewBag.Audits"><option value="">–</option></select></div>
+            <div class="champ"><label asp-for="AspectEnvironnementalId"></label><select asp-for="AspectEnvironnementalId" asp-items="ViewBag.Aspects"><option value="">–</option></select></div>
+
+            <div class="actions champ--large">
+                @if (saisir)
+                {
+                    <button class="btn btn--primaire">Enregistrer</button>
+                }
+                <a class="btn btn--secondaire" asp-action="Index">Retour</a>
+            </div>
+        </div>
+    </fieldset>
+</form>
+@if (!nouveau && User.PeutGerer())
+{
+    <div class="actions"><partial name="_Supprimer" model="@(("Delete", Model.Id, "Supprimer cette action ?"))" /></div>
+}
+<partial name="_Responsables" />

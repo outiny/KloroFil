@@ -1,0 +1,61 @@
+@model List<AspectEnvironnemental>
+@{
+    ViewData["Title"] = "Analyse environnementale";
+    bool significatifs = ViewBag.Significatifs;
+    var gerer = User.PeutGerer();
+    static string CouleurCotation(AspectEnvironnemental a) => a.Significatif ? "badge--rouge" : a.Criticite >= 12 ? "badge--orange" : "badge--vert";
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Analyse environnementale</h1>
+        <p class="sous-titre">Aspects et impacts · criticité = gravité × fréquence × maîtrise · significatif à partir de @AspectEnvironnemental.SeuilSignificatif, gravité 5 ou exigence légale</p>
+    </div>
+    @if (gerer)
+    {
+        <a class="btn btn--primaire" asp-action="Edition">Ajouter un aspect</a>
+    }
+</div>
+
+<div class="onglets">
+    <a class="@(!significatifs ? "is-active" : "")" asp-route-significatifs="false">Tous</a>
+    <a class="@(significatifs ? "is-active" : "")" asp-route-significatifs="true">Significatifs</a>
+</div>
+
+<div class="carte defile">
+    @if (Model.Count == 0)
+    {
+        <p class="vide">Aucun aspect environnemental recensé.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Activité</th><th>Aspect</th><th>Impact</th><th>Compartiment</th><th>Situation</th><th class="nombre">G</th><th class="nombre">F</th><th class="nombre">M</th><th>Criticité</th><th>Site</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@if (gerer) { <a class="reference" asp-action="Edition" asp-route-id="@a.Id">@a.Activite</a> } else { @a.Activite }</td>
+                        <td>@a.Aspect</td>
+                        <td>@a.Impact</td>
+                        <td>@a.Domaine.Libelle()</td>
+                        <td>@a.Situation.Libelle()</td>
+                        <td class="nombre">@a.Gravite</td>
+                        <td class="nombre">@a.Frequence</td>
+                        <td class="nombre">@a.Maitrise</td>
+                        <td>
+                            <span class="badge @CouleurCotation(a)">@a.Criticite@(a.Significatif ? " · significatif" : "")</span>
+                            @if (a.ExigenceLegale) { <div class="discret">exigence légale</div> }
+                        </td>
+                        <td>@(a.Site?.Nom ?? "Tous")</td>
+                        <td>
+                            @if (User.PeutSaisir() && a.Significatif)
+                            {
+                                <a class="btn btn--secondaire btn--petit" asp-controller="Actions" asp-action="Edition" asp-route-aspectId="@a.Id">+ Action</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

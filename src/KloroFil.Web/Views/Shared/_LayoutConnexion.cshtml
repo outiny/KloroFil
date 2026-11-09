@@ -1,0 +1,32 @@
+@* Mise en page des écrans hors connexion : panneau en dégradé de vert à gauche, formulaire à droite. *@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#5B8C1E" />
+    <title>@ViewData["Title"] – KloroFil</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="page-connexion">
+        <section class="connexion__visuel">
+            <div class="connexion__logos">
+                <img class="icone" src="~/img/icone-klorofil.png" alt="" />
+                <img class="guery" src="~/img/logo-guery.png" alt="Guéry" />
+            </div>
+            <h2 class="connexion__titre">KloroFil</h2>
+            <p class="connexion__texte">
+                Pilotage du système de management environnemental ISO 14001 et veille réglementaire automatisée
+                sur les Installations Classées pour la Protection de l'Environnement.
+            </p>
+        </section>
+        <section class="connexion__formulaire">
+            <div class="connexion__boite">
+                @RenderBody()
+            </div>
+        </section>
+    </div>
+</body>
+</html>

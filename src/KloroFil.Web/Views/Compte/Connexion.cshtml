@@ -1,0 +1,23 @@
+@model ConnexionVm
+@{
+    ViewData["Title"] = "Connexion";
+    Layout = "_LayoutConnexion";
+}
+<h1>Connexion</h1>
+<p class="sous-titre">Accédez à votre espace de management environnemental.</p>
+<form method="post" asp-action="Connexion" asp-route-returnUrl="@ViewBag.ReturnUrl">
+    <div asp-validation-summary="ModelOnly"></div>
+    <div class="champ">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" placeholder="prenom.nom@guery.com" autocomplete="username" autofocus />
+        <span asp-validation-for="Email"></span>
+    </div>
+    <div class="champ">
+        <label asp-for="MotDePasse"></label>
+        <input asp-for="MotDePasse" autocomplete="current-password" />
+        <span asp-validation-for="MotDePasse"></span>
+    </div>
+    <label class="case"><input asp-for="SeSouvenir" /> Se souvenir de moi</label>
+    <button class="btn btn--primaire">Se connecter</button>
+</form>
+<p class="connexion__note">Les comptes sont créés par l'administrateur.</p>

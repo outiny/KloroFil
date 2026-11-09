@@ -1,0 +1,29 @@
+@model TexteReglementaire
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouveau texte" : "Analyse du texte";
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
+    <h1 class="carte__titre">@(nouveau ? "Nouveau texte réglementaire" : "Fiche et analyse du texte")</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Titre"></label><textarea asp-for="Titre" rows="2"></textarea><span asp-validation-for="Titre"></span></div>
+        <div class="champ"><label asp-for="Reference"></label><input asp-for="Reference" placeholder="TREP2412345A" /></div>
+        <div class="champ"><label asp-for="Type"></label><select asp-for="Type" asp-items="Affichage.Choix(Model.Type)"></select></div>
+        <div class="champ"><label asp-for="Domaine"></label><select asp-for="Domaine" asp-items="Affichage.Choix(Model.Domaine)"></select></div>
+        <div class="champ"><label asp-for="RubriquesConcernees"></label><input asp-for="RubriquesConcernees" placeholder="2565, 2940" /></div>
+        <div class="champ"><label asp-for="DatePublication"></label><input asp-for="DatePublication" type="date" /></div>
+        <div class="champ"><label asp-for="DateApplication"></label><input asp-for="DateApplication" type="date" /></div>
+        <div class="champ champ--large"><label asp-for="Url"></label><input asp-for="Url" type="url" placeholder="https://www.legifrance.gouv.fr/…" /></div>
+        <div class="champ champ--large"><label asp-for="Resume"></label><textarea asp-for="Resume" rows="4"></textarea></div>
+
+        <p class="separateur">Analyse d'applicabilité</p>
+        <div class="champ"><label asp-for="Statut"></label><select asp-for="Statut" asp-items="Affichage.Choix(Model.Statut)"></select></div>
+        <div class="champ champ--large"><label asp-for="Analyse"></label><textarea asp-for="Analyse" rows="5" placeholder="Activités, installations ou rubriques concernées, échéances, actions à prévoir…"></textarea></div>
+
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="@(nouveau ? "Index" : "Details")" asp-route-id="@(nouveau ? null : Model.Id)">Annuler</a>
+        </div>
+    </div>
+</form>

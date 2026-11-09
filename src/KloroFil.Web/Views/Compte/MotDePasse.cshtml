@@ -1,0 +1,18 @@
+@model ChangerMotDePasseVm
+@{
+    ViewData["Title"] = "Mon mot de passe";
+}
+<form method="post" asp-action="MotDePasse" class="carte carte-etroite">
+    <h1 class="carte__titre">Changer mon mot de passe</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Actuel"></label><input asp-for="Actuel" autocomplete="current-password" /><span asp-validation-for="Actuel"></span></div>
+        <div class="champ champ--large"><label asp-for="Nouveau"></label><input asp-for="Nouveau" autocomplete="new-password" /><span asp-validation-for="Nouveau"></span></div>
+        <div class="champ champ--large"><label asp-for="Confirmation"></label><input asp-for="Confirmation" autocomplete="new-password" /><span asp-validation-for="Confirmation"></span></div>
+        <p class="aide champ--large">10 caractères minimum.</p>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-controller="Home" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>

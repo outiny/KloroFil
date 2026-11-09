@@ -1,0 +1,9 @@
+@* Liste de suggestions pour les champs « Responsable » : les utilisateurs de KloroFil. *@
+@inject KloroFil.Web.Data.KloroFilDbContext Db
+@using Microsoft.EntityFrameworkCore
+<datalist id="responsables">
+    @foreach (var u in await Db.Users.AsNoTracking().OrderBy(u => u.NomComplet ?? u.Email).ToListAsync())
+    {
+        <option value="@u.Affichage"></option>
+    }
+</datalist>

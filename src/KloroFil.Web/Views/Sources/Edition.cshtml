@@ -1,0 +1,24 @@
+@model SourceVeille
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvelle source" : Model.Nom;
+}
+<form method="post" asp-action="Edition" asp-route-id="@(nouveau ? null : Model.Id)" class="carte carte-etroite">
+    <h1 class="carte__titre">@(nouveau ? "Nouvelle source de veille" : Model.Nom)</h1>
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ champ--large"><label asp-for="Nom"></label><input asp-for="Nom" /><span asp-validation-for="Nom"></span></div>
+        <div class="champ champ--large"><label asp-for="Url"></label><input asp-for="Url" type="url" placeholder="https://…/rss.xml" /><span asp-validation-for="Url"></span></div>
+        <div class="champ champ--large">
+            <label asp-for="MotsCles"></label>
+            <textarea asp-for="MotsCles" rows="3" placeholder="ICPE, installations classées, 2565, traitement de surface, déchets, COV"></textarea>
+            <span class="aide">Un élément du flux est retenu si son titre ou son résumé contient l'un des mots-clés (sans tenir compte des accents ni des majuscules). Vide : tout le flux est importé.</span>
+        </div>
+        <div class="champ"><label asp-for="Domaine"></label><select asp-for="Domaine" asp-items="Affichage.Choix(Model.Domaine)"></select></div>
+        <label class="case"><input asp-for="Active" /> Lue automatiquement</label>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Index">Annuler</a>
+        </div>
+    </div>
+</form>

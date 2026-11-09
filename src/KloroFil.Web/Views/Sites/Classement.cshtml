@@ -1,0 +1,22 @@
+@model Classement
+@{
+    var nouveau = Model.Id == 0;
+    ViewData["Title"] = nouveau ? "Nouvelle rubrique" : "Rubrique " + Model.Rubrique;
+}
+<form method="post" asp-action="Classement" asp-route-id="@(nouveau ? null : Model.Id)" class="carte carte-etroite">
+    <h1 class="carte__titre">@(nouveau ? "Nouvelle rubrique" : "Rubrique " + Model.Rubrique) – @Model.Site?.Nom</h1>
+    <input type="hidden" asp-for="SiteId" />
+    <div class="formulaire">
+        <div asp-validation-summary="ModelOnly" class="champ--large"></div>
+        <div class="champ"><label asp-for="Rubrique"></label><input asp-for="Rubrique" placeholder="2565" /><span asp-validation-for="Rubrique"></span></div>
+        <div class="champ"><label asp-for="Alinea"></label><input asp-for="Alinea" placeholder="2-a" /></div>
+        <div class="champ champ--large"><label asp-for="Designation"></label><textarea asp-for="Designation" rows="2"></textarea><span asp-validation-for="Designation"></span></div>
+        <div class="champ"><label asp-for="Volume"></label><input asp-for="Volume" placeholder="1 500 l" /></div>
+        <div class="champ"><label asp-for="Regime"></label><select asp-for="Regime" asp-items="Affichage.Choix(Model.Regime)"></select></div>
+        <div class="champ champ--large"><label asp-for="ArreteMinisteriel"></label><input asp-for="ArreteMinisteriel" placeholder="AM du … relatif aux prescriptions générales applicables…" /></div>
+        <div class="actions champ--large">
+            <button class="btn btn--primaire">Enregistrer</button>
+            <a class="btn btn--secondaire" asp-action="Details" asp-route-id="@Model.SiteId">Annuler</a>
+        </div>
+    </div>
+</form>

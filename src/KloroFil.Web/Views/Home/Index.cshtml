@@ -1,0 +1,167 @@
+@model TableauDeBordVm
+@{
+    ViewData["Title"] = "Tableau de bord";
+}
+<div class="entete-page">
+    <div>
+        <h1 class="titre">Tableau de bord</h1>
+        <p class="sous-titre">Système de management environnemental ISO 14001 – situation au @DateTime.Today.Date()</p>
+    </div>
+    @if (User.PeutGerer())
+    {
+        <form asp-controller="Textes" asp-action="LancerVeille" method="post">
+            <button class="btn btn--primaire">Lancer la veille maintenant</button>
+        </form>
+    }
+</div>
+
+<div class="grille-kpi">
+    <a class="kpi @(Model.TextesAAnalyser > 0 ? "kpi--attention" : "")" asp-controller="Textes" asp-action="Index" asp-route-statut="@StatutVeille.AAnalyser">
+        <div class="kpi__libelle">Textes à analyser</div>
+        <div class="kpi__valeur">@Model.TextesAAnalyser</div>
+    </a>
+    <a class="kpi" asp-controller="Textes" asp-action="Registre">
+        <div class="kpi__libelle">Taux de conformité</div>
+        <div class="kpi__valeur">@(Model.ExigencesEvaluees == 0 ? "–" : Model.TauxConformite.Pourcent())</div>
+        <div class="jauge"><span style="width:@Model.TauxConformite.ToString("0")%; background:@Affichage.CouleurAvancement((int)Model.TauxConformite)"></span></div>
+    </a>
+    <a class="kpi @(Model.ExigencesNonConformes > 0 ? "kpi--alerte" : "")" asp-controller="Textes" asp-action="Registre" asp-route-conformite="@Conformite.NonConforme">
+        <div class="kpi__libelle">Exigences non conformes</div>
+        <div class="kpi__valeur">@Model.ExigencesNonConformes</div>
+    </a>
+    <a class="kpi @(Model.PrescriptionsEnRetard > 0 ? "kpi--alerte" : "")" asp-controller="Prescriptions" asp-action="Index" asp-route-filtre="retard">
+        <div class="kpi__libelle">Contrôles ICPE en retard</div>
+        <div class="kpi__valeur">@Model.PrescriptionsEnRetard</div>
+    </a>
+    <a class="kpi" asp-controller="Prescriptions" asp-action="Index" asp-route-filtre="avenir">
+        <div class="kpi__libelle">Échéances à 60 jours</div>
+        <div class="kpi__valeur">@Model.PrescriptionsAVenir</div>
+    </a>
+    <a class="kpi @(Model.ActionsEnRetard > 0 ? "kpi--alerte" : "")" asp-controller="Actions" asp-action="Index" asp-route-filtre="retard">
+        <div class="kpi__libelle">Actions ouvertes / en retard</div>
+        <div class="kpi__valeur">@Model.ActionsOuvertes <small class="discret">/ @Model.ActionsEnRetard</small></div>
+    </a>
+    <a class="kpi" asp-controller="Aspects" asp-action="Index" asp-route-significatifs="true">
+        <div class="kpi__libelle">Aspects significatifs</div>
+        <div class="kpi__valeur">@Model.AspectsSignificatifs</div>
+    </a>
+    <a class="kpi" asp-controller="Sites" asp-action="Index">
+        <div class="kpi__libelle">Sites / rubriques ICPE</div>
+        <div class="kpi__valeur">@Model.Sites <small class="discret">/ @Model.Classements</small></div>
+    </a>
+</div>
+
+<div class="colonnes">
+    <div class="carte">
+        <h2 class="carte__titre">Dernières nouveautés de la veille <a asp-controller="Textes" asp-action="Index">Tout voir</a></h2>
+        @if (Model.DerniersTextes.Count == 0)
+        {
+            <p class="vide">Aucun texte. Déclarez des <a asp-controller="Sources" asp-action="Index">sources de veille</a> ou ajoutez un texte manuellement.</p>
+        }
+        else
+        {
+            <div class="defile">
+                <table class="table">
+                    <tbody>
+                        @foreach (var t in Model.DerniersTextes)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="reference" asp-controller="Textes" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
+                                    <div class="discret">@t.Domaine.Libelle() · @((t.DatePublication ?? t.DateDetection).Date())
+                                        @if (t.RubriquesConcernees is not null) { <text>· rubrique(s) @t.RubriquesConcernees</text> }</div>
+                                </td>
+                                <td><span class="badge badge--@t.Statut.Couleur()">@t.Statut.Libelle()</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="carte">
+        <h2 class="carte__titre">Échéancier ICPE (60 jours) <a asp-controller="Prescriptions" asp-action="Index">Tout voir</a></h2>
+        @if (Model.Echeances.Count == 0)
+        {
+            <p class="vide">Aucune échéance dans les 60 prochains jours.</p>
+        }
+        else
+        {
+            <div class="defile">
+                <table class="table">
+                    <tbody>
+                        @foreach (var p in Model.Echeances)
+                        {
+                            <tr class="@(p.EnRetard ? "retard" : "")">
+                                <td class="@(p.EnRetard ? "retard-texte" : "")">@p.ProchaineEcheance.Date()</td>
+                                <td>
+                                    <a class="reference" asp-controller="Prescriptions" asp-action="Edition" asp-route-id="@p.Id">@p.Intitule</a>
+                                    <div class="discret">@p.Site?.Nom · @p.Periodicite.Libelle() · @p.Responsable.Texte()</div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="carte">
+        <h2 class="carte__titre">Actions prioritaires <a asp-controller="Actions" asp-action="Index">Tout voir</a></h2>
+        @if (Model.ActionsUrgentes.Count == 0)
+        {
+            <p class="vide">Aucune action ouverte.</p>
+        }
+        else
+        {
+            <div class="defile">
+                <table class="table">
+                    <tbody>
+                        @foreach (var a in Model.ActionsUrgentes)
+                        {
+                            <tr class="@(a.EnRetard ? "retard" : "")">
+                                <td>
+                                    <a class="reference" asp-controller="Actions" asp-action="Edition" asp-route-id="@a.Id">@a.Numero</a>
+                                    @a.Titre
+                                    <div class="discret">@a.Responsable.Texte() · <span class="@(a.EnRetard ? "retard-texte" : "")">@a.Echeance.Date()</span></div>
+                                </td>
+                                <td><span class="badge badge--@a.Statut.Couleur()">@a.Statut.Libelle()</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="carte">
+        <h2 class="carte__titre">Objectifs en cours <a asp-controller="Objectifs" asp-action="Index">Tout voir</a></h2>
+        @if (Model.Objectifs.Count == 0)
+        {
+            <p class="vide">Aucun objectif en cours.</p>
+        }
+        else
+        {
+            <div class="defile">
+                <table class="table">
+                    <tbody>
+                        @foreach (var o in Model.Objectifs)
+                        {
+                            <tr>
+                                <td>
+                                    @o.Intitule
+                                    <div class="discret">@o.Indicateur.Texte() · cible @o.Cible.Texte() · @o.Echeance.Date()</div>
+                                </td>
+                                <td style="width:140px">
+                                    <div class="discret">@o.Avancement %</div>
+                                    <div class="jauge"><span style="width:@o.Avancement%; background:@Affichage.CouleurAvancement(o.Avancement)"></span></div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
