@@ -17,8 +17,33 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
     private static readonly CompareInfo Comparaison = CultureInfo.GetCultureInfo("fr-FR").CompareInfo;
     private const CompareOptions SansCasseNiAccent = CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
 
+    /// <summary>
+    /// Textes administratifs sans portée réglementaire qui citent les ICPE dans leur contenu (offres d'emploi d'inspecteurs,
+    /// nominations, concours…). Un titre contenant l'une de ces expressions est écarté. Remplaçable par Veille:Exclusions.
+    /// </summary>
+    public static readonly string[] ExclusionsParDefaut =
+    [
+        "avis de vacance", "vacance d'emploi", "vacance de poste", "vacance d'un emploi",
+        "avis de concours", "concours externe", "concours interne", "examen professionnel", "recrutement",
+        "portant nomination", "nomination", "cessation de fonctions", "tableau d'avancement", "liste d'aptitude",
+        "titularisation", "admission à la retraite", "composition du jury", "Documents et publications",
+        "ordre indemnitaire", "régime indemnitaire", "délégation de signature", "liste des emplois", "baccalauréat"
+    ];
+
+    private string[] Exclusions =>
+        config.GetSection("Veille:Exclusions").Get<string[]>() is { Length: > 0 } e ? e : ExclusionsParDefaut;
+
+    /// <summary>Expression d'exclusion présente dans le titre (sans tenir compte des accents, majuscules et apostrophes typographiques), sinon null.</summary>
+    public string? Exclusion(string titre)
+    {
+        var t = titre.Replace('’', '\'');
+        return Exclusions.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x) && Contient(t, x.Replace('’', '\'').Trim()));
+    }
+
     public async Task<ResultatVeille> LancerAsync(int? sourceId = null, CancellationToken ct = default)
     {
+        await ReclasserHorsSujetAsync(ct);
+
         var sources = await db.SourcesVeille
             .Where(s => sourceId == null ? s.Active : s.Id == sourceId)
             .ToListAsync(ct);
@@ -30,9 +55,11 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         {
             try
             {
-                var (lus, retenus, n, fluxDetecte) = await LireSourceAsync(source, rubriques, ct);
+                var (lus, retenus, n, fluxDetecte, ecartes) = await LireSourceAsync(source, rubriques, ct);
                 ajoutes += n;
-                var resultat = $"{lus} élément(s) lu(s), {retenus} retenu(s) par les mots-clés, {n} nouveau(x) texte(s).";
+                var resultat = $"{lus} élément(s) lu(s), {retenus} retenu(s) par les mots-clés"
+                    + (ecartes > 0 ? $", {ecartes} écarté(s) car hors sujet (nominations, avis de vacance…)" : "")
+                    + $", {n} nouveau(x) texte(s).";
                 if (fluxDetecte is not null) resultat = $"Flux détecté dans la page et enregistré : {fluxDetecte}. " + resultat;
                 source.DernierResultat = Tronquer(resultat, 500);
             }
@@ -49,7 +76,37 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         return new ResultatVeille(sources.Count, ajoutes, erreurs);
     }
 
-    private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte)> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
+    /// <summary>
+    /// Textes déjà importés et encore « À analyser » dont le titre correspond à une exclusion : classés « Non applicable »
+    /// avec la raison (rien n'est supprimé ; un texte déjà analysé n'est jamais modifié).
+    /// </summary>
+    public async Task<int> ReclasserHorsSujetAsync(CancellationToken ct = default)
+    {
+        var enAttente = await db.Textes.Where(t => t.Statut == StatutVeille.AAnalyser && !t.Exigences.Any()).ToListAsync(ct);
+        var n = 0;
+        foreach (var t in enAttente)
+        {
+            if (Exclusion(t.Titre) is not { } motif) continue;
+            Ecarter(t, motif);
+            n++;
+        }
+        if (n > 0)
+        {
+            await db.SaveChangesAsync(ct);
+            journal.LogInformation("Veille : {N} texte(s) hors sujet reclassé(s) « Non applicable »", n);
+        }
+        return n;
+    }
+
+    private static void Ecarter(TexteReglementaire t, string motif)
+    {
+        t.Statut = StatutVeille.NonApplicable;
+        t.Analyse = $"Écarté automatiquement par KloroFil : texte administratif hors sujet (« {motif} »).";
+        t.AnalyseLe = DateTime.Now;
+        t.AnalysePar = "KloroFil";
+    }
+
+    private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte, int Ecartes)> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
     {
         var motsCles = (source.MotsCles ?? "")
             .Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -71,11 +128,14 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
             fluxDetecte = lecture.UrlFlux;
         }
 
-        var retenus = elements
+        var pertinents = elements
             .Where(e => parApi || motsCles.Length == 0 || motsCles.Any(m => Contient(e.Titre + " " + e.Resume, m)))
             .Where(e => !string.IsNullOrWhiteSpace(e.Lien))
             .ToList();
-        if (retenus.Count == 0) return (elements.Count, 0, 0, fluxDetecte);
+        // Les textes hors sujet ne sont pas importés.
+        var retenus = pertinents.Where(e => Exclusion(e.Titre) is null).ToList();
+        var ecartes = pertinents.Count - retenus.Count;
+        if (retenus.Count == 0) return (elements.Count, pertinents.Count, 0, fluxDetecte, ecartes);
 
         var liens = retenus.Select(e => Tronquer(e.Lien!, 1000)).ToList();
         var dejaConnus = (await db.Textes.Where(t => t.Url != null && liens.Contains(t.Url)).Select(t => t.Url!).ToListAsync(ct))
@@ -106,7 +166,7 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
             });
             ajoutes++;
         }
-        return (elements.Count, retenus.Count, ajoutes, fluxDetecte);
+        return (elements.Count, pertinents.Count, ajoutes, fluxDetecte, ecartes);
     }
 
     /// <summary>

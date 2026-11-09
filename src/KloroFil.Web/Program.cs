@@ -89,6 +89,9 @@ using (var scope = app.Services.CreateScope())
     foreach (var role in RolesKloroFil.Tous)
         if (!await roles.RoleExistsAsync(role))
             await roles.CreateAsync(new IdentityRole(role));
+
+    // Textes hors sujet (avis de vacance, nominations…) encore « À analyser » : reclassés « Non applicable ».
+    await scope.ServiceProvider.GetRequiredService<VeilleService>().ReclasserHorsSujetAsync();
 }
 
 if (!app.Environment.IsDevelopment())

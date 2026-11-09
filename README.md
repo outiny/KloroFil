@@ -59,6 +59,17 @@ Le flux de votre prestataire de veille, de la DREAL ou d'un organisme profession
 Si l'adresse saisie est une page web (ex. `https://aida.ineris.fr/`), KloroFil cherche le flux RSS qu'elle annonce
 et le retient à la place de la page.
 
+### Textes hors sujet
+
+Les titres contenant certaines expressions sont écartés : avis de vacance, nominations, concours, régime
+indemnitaire, délégations de signature… Ces textes citent les ICPE sans avoir de portée réglementaire pour
+l'entreprise. Les textes de ce type déjà importés et encore « À analyser » sont classés « Non applicable », avec la
+raison (rien n'est supprimé). La liste est dans `VeilleService.ExclusionsParDefaut` ; on peut la remplacer dans
+`appsettings.json` :
+```json
+"Veille": { "Exclusions": [ "avis de vacance", "nomination", "concours" ] }
+```
+
 ### Légifrance (Journal officiel) via l'API PISTE
 
 Légifrance refuse les lectures automatiques de son site : une source dont l'adresse est sur `legifrance.gouv.fr`
