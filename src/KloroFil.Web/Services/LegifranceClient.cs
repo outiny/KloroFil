@@ -66,7 +66,27 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         return resultats.Values.OrderByDescending(e => e.Date).ToList();
     }
 
+    /// <summary>Toutes les pages de résultats d'un mot-clé, dans la limite de Piste:MaxParMotCle (200 par défaut).</summary>
     private async Task<List<ElementFlux>> RechercherAsync(string terme, DateTime depuis, CancellationToken ct)
+    {
+        const int taillePage = 50;   // maximum accepté par l'API
+        var maximum = Math.Max(taillePage, config.GetValue("Piste:MaxParMotCle", 200));
+        var tous = new List<ElementFlux>();
+        int? total = null;
+        for (var page = 1; tous.Count < maximum; page++)
+        {
+            var (elements, nb) = await RechercherPageAsync(terme, depuis, page, taillePage, ct);
+            total ??= nb;
+            tous.AddRange(elements);
+            if (elements.Count < taillePage || (total is { } t && tous.Count >= t)) break;
+        }
+
+        journal.LogInformation("Légifrance : « {Terme} » depuis le {Depuis} → {Lus} texte(s) lu(s) sur {Total} trouvé(s)",
+            terme, depuis.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), tous.Count, total?.ToString() ?? "?");
+        return tous;
+    }
+
+    private async Task<(List<ElementFlux> Elements, int? Total)> RechercherPageAsync(string terme, DateTime depuis, int page, int taillePage, CancellationToken ct)
     {
         var corps = new JsonObject
         {
@@ -93,8 +113,8 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
                         ["end"] = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                     }
                 }),
-                ["pageNumber"] = 1,
-                ["pageSize"] = 50,
+                ["pageNumber"] = page,
+                ["pageSize"] = taillePage,
                 ["operateur"] = "ET",
                 ["sort"] = "DATE_PUBLI_DESC",
                 ["typePagination"] = "DEFAUT"
@@ -122,10 +142,8 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
             }
 
             var json = JsonNode.Parse(await reponse.Content.ReadAsStringAsync(ct));
-            var elements = Analyser(json);
-            journal.LogInformation("Légifrance : « {Terme} » depuis le {Depuis} → {Lus} texte(s) lu(s) sur {Total} trouvé(s)",
-                terme, depuis.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), elements.Count, json?["totalResultNumber"]?.ToString() ?? "?");
-            return elements;
+            int? total = int.TryParse(json?["totalResultNumber"]?.ToString(), out var n) ? n : null;
+            return (Analyser(json), total);
         }
     }
 

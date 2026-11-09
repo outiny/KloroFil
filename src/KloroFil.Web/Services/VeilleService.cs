@@ -12,7 +12,7 @@ public record ResultatVeille(int SourcesLues, int TextesAjoutes, List<string> Er
 /// Interroge les sources de veille actives, filtre les nouveautés par mots-clés et les enregistre
 /// comme textes « À analyser ». Les rubriques ICPE du parc citées dans le texte sont repérées automatiquement.
 /// </summary>
-public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, LegifranceClient legifrance, ILogger<VeilleService> journal)
+public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, LegifranceClient legifrance, IConfiguration config, ILogger<VeilleService> journal)
 {
     private static readonly CompareInfo Comparaison = CultureInfo.GetCultureInfo("fr-FR").CompareInfo;
     private const CompareOptions SansCasseNiAccent = CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
@@ -57,7 +57,7 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         // Légifrance refuse les robots : ses textes sont lus par l'API officielle (PISTE), déjà filtrée par les mots-clés.
         var parApi = LegifranceClient.EstLegifrance(source.Url);
         var lecture = parApi
-            ? new LectureFlux(await legifrance.RechercherJorfAsync(motsCles, source.DerniereLecture?.Date.AddDays(-7) ?? DateTime.Today.AddDays(-90), ct), source.Url)
+            ? new LectureFlux(await legifrance.RechercherJorfAsync(motsCles, await DebutRechercheAsync(source, ct), ct), source.Url)
             : await lecteur.LireAsync(source.Url, ct);
         var elements = lecture.Elements;
 
@@ -107,6 +107,13 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         }
         return (elements.Count, retenus.Count, ajoutes, fluxDetecte);
     }
+
+    /// <summary>
+    /// Début de la période interrogée : toujours les Veille:ProfondeurJours derniers jours (365 par défaut).
+    /// Les textes déjà connus sont ignorés ; une lecture en erreur ou un mot-clé ajouté ne fait donc rien manquer.
+    /// </summary>
+    private Task<DateTime> DebutRechercheAsync(SourceVeille source, CancellationToken ct) =>
+        Task.FromResult(DateTime.Today.AddDays(-Math.Max(1, config.GetValue("Veille:ProfondeurJours", 365))));
 
     public static TypeTexte DevinerType(string titre)
     {

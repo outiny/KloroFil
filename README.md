@@ -63,8 +63,9 @@ et le retient à la place de la page.
 
 Légifrance refuse les lectures automatiques de son site : une source dont l'adresse est sur `legifrance.gouv.fr`
 est interrogée par l'**API Légifrance de la DILA** (portail [PISTE](https://piste.gouv.fr)).
-Chaque mot-clé de la source donne une recherche dans le fonds **JORF**, limitée aux textes publiés depuis la
-dernière lecture (90 jours à la première).
+Chaque mot-clé de la source donne une recherche dans le fonds **JORF** sur les 12 derniers mois
+(`Veille:ProfondeurJours`, 365 par défaut), 200 textes au plus par mot-clé (`Piste:MaxParMotCle`).
+Les textes déjà connus sont ignorés : seuls les nouveaux arrivent « À analyser ».
 
 1. Sur piste.gouv.fr, dans votre application, ajoutez l'API **Légifrance** et acceptez ses conditions d'utilisation.
 2. Copiez la *client_id* et le *client_secret* (OAuth) de l'application dans les secrets de KloroFil :
@@ -74,7 +75,7 @@ dernière lecture (90 jours à la première).
    ```
    Pour le bac à sable PISTE, ajoutez `Piste:Sandbox` = `true`. Facultatif : `Piste:TokenUrl`, `Piste:ApiBaseUrl`
    (et leurs variantes `…Sandbox`) remplacent les adresses PISTE par défaut.
-   Le journal de l'application indique, pour chaque mot-clé, le nombre de textes trouvés (50 au plus par mot-clé).
+   Le journal de l'application indique, pour chaque mot-clé, le nombre de textes trouvés.
 3. Ajoutez une source d'adresse `https://www.legifrance.gouv.fr/` avec vos mots-clés (ex. « installations classées, 2565 »).
 
 Réglages (`appsettings.json`, section `Veille`) : `IntervalleHeures` (24 par défaut, 0 = désactivée) et
