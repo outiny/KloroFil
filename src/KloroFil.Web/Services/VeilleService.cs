@@ -30,9 +30,11 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
         {
             try
             {
-                var n = await LireSourceAsync(source, rubriques, ct);
+                var (lus, retenus, n, fluxDetecte) = await LireSourceAsync(source, rubriques, ct);
                 ajoutes += n;
-                source.DernierResultat = n == 0 ? "Aucune nouveauté." : $"{n} nouveau(x) texte(s).";
+                var resultat = $"{lus} élément(s) lu(s), {retenus} retenu(s) par les mots-clés, {n} nouveau(x) texte(s).";
+                if (fluxDetecte is not null) resultat = $"Flux détecté dans la page et enregistré : {fluxDetecte}. " + resultat;
+                source.DernierResultat = Tronquer(resultat, 500);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -47,9 +49,20 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
         return new ResultatVeille(sources.Count, ajoutes, erreurs);
     }
 
-    private async Task<int> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
+    private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte)> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
     {
-        var elements = await lecteur.LireAsync(source.Url, ct);
+        var lecture = await lecteur.LireAsync(source.Url, ct);
+        var elements = lecture.Elements;
+
+        // L'adresse saisie était une page web : on retient le flux trouvé pour les prochaines lectures.
+        string? fluxDetecte = null;
+        if (!string.Equals(lecture.UrlFlux, source.Url, StringComparison.OrdinalIgnoreCase)
+            && lecture.UrlFlux.Length <= 1000
+            && !await db.SourcesVeille.AnyAsync(s => s.Url == lecture.UrlFlux && s.Id != source.Id, ct))
+        {
+            source.Url = lecture.UrlFlux;
+            fluxDetecte = lecture.UrlFlux;
+        }
         var motsCles = (source.MotsCles ?? "")
             .Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -57,7 +70,7 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
             .Where(e => motsCles.Length == 0 || motsCles.Any(m => Contient(e.Titre + " " + e.Resume, m)))
             .Where(e => !string.IsNullOrWhiteSpace(e.Lien))
             .ToList();
-        if (retenus.Count == 0) return 0;
+        if (retenus.Count == 0) return (elements.Count, 0, 0, fluxDetecte);
 
         var liens = retenus.Select(e => Tronquer(e.Lien!, 1000)).ToList();
         var dejaConnus = (await db.Textes.Where(t => t.Url != null && liens.Contains(t.Url)).Select(t => t.Url!).ToListAsync(ct))
@@ -87,7 +100,7 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
             });
             ajoutes++;
         }
-        return ajoutes;
+        return (elements.Count, retenus.Count, ajoutes, fluxDetecte);
     }
 
     public static TypeTexte DevinerType(string titre)
