@@ -72,7 +72,9 @@ dernière lecture (90 jours à la première).
    dotnet user-secrets --project src/KloroFil.Web set "Piste:ClientId" "…"
    dotnet user-secrets --project src/KloroFil.Web set "Piste:ClientSecret" "…"
    ```
-   Pour le bac à sable PISTE, ajoutez `Piste:BacASable` = `true`.
+   Pour le bac à sable PISTE, ajoutez `Piste:Sandbox` = `true`. Facultatif : `Piste:TokenUrl`, `Piste:ApiBaseUrl`
+   (et leurs variantes `…Sandbox`) remplacent les adresses PISTE par défaut.
+   Le journal de l'application indique, pour chaque mot-clé, le nombre de textes trouvés (50 au plus par mot-clé).
 3. Ajoutez une source d'adresse `https://www.legifrance.gouv.fr/` avec vos mots-clés (ex. « installations classées, 2565 »).
 
 Réglages (`appsettings.json`, section `Veille`) : `IntervalleHeures` (24 par défaut, 0 = désactivée) et

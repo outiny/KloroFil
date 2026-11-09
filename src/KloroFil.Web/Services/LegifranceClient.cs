@@ -9,20 +9,39 @@ namespace KloroFil.Web.Services;
 
 /// <summary>
 /// Recherche des textes publiés au Journal officiel via l'API Légifrance de la DILA (portail PISTE).
-/// Identifiants dans la configuration (User Secrets) : Piste:ClientId, Piste:ClientSecret, Piste:BacASable (true pour le bac à sable).
+/// Configuration (User Secrets), section « Piste » :
+///   ClientId, ClientSecret (obligatoires) ; Sandbox (true = bac à sable) ;
+///   TokenUrl / TokenUrlSandbox et ApiBaseUrl / ApiBaseUrlSandbox (facultatifs, valeurs PISTE par défaut).
 /// </summary>
 public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration config, ILogger<LegifranceClient> journal)
 {
     public const string NomClient = "piste";
     private const int TailleMaxResume = 4000;
+    private const string CheminApi = "/dila/legifrance/lf-engine-app";
 
     private static readonly SemaphoreSlim Verrou = new(1, 1);
     private static string? _jeton;
+    private static string? _jetonPour;   // URL du serveur qui a délivré le jeton (production ou bac à sable)
     private static DateTime _expiration;
 
-    private bool BacASable => config.GetValue("Piste:BacASable", false);
-    private string UrlJeton => BacASable ? "https://sandbox-oauth.piste.gouv.fr/api/oauth/token" : "https://oauth.piste.gouv.fr/api/oauth/token";
-    private string UrlApi => (BacASable ? "https://sandbox-api.piste.gouv.fr" : "https://api.piste.gouv.fr") + "/dila/legifrance/lf-engine-app";
+    private bool BacASable => config.GetValue<bool?>("Piste:Sandbox") ?? config.GetValue("Piste:BacASable", false);
+
+    private string UrlJeton => Valeur(BacASable ? "Piste:TokenUrlSandbox" : "Piste:TokenUrl")
+        ?? (BacASable ? "https://sandbox-oauth.piste.gouv.fr/api/oauth/token" : "https://oauth.piste.gouv.fr/api/oauth/token");
+
+    /// <summary>Adresse de base de l'API ; le chemin Légifrance est ajouté s'il n'est pas déjà dans la configuration.</summary>
+    private string UrlApi
+    {
+        get
+        {
+            var baseUrl = (Valeur(BacASable ? "Piste:ApiBaseUrlSandbox" : "Piste:ApiBaseUrl")
+                ?? (BacASable ? "https://sandbox-api.piste.gouv.fr" : "https://api.piste.gouv.fr")).TrimEnd('/');
+            if (baseUrl.EndsWith("/search", StringComparison.OrdinalIgnoreCase)) baseUrl = baseUrl[..^"/search".Length];
+            return baseUrl.Contains("lf-engine-app", StringComparison.OrdinalIgnoreCase) ? baseUrl : baseUrl + CheminApi;
+        }
+    }
+
+    private string? Valeur(string cle) => string.IsNullOrWhiteSpace(config[cle]) ? null : config[cle]!.Trim();
 
     public bool EstConfigure => !string.IsNullOrWhiteSpace(config["Piste:ClientId"]) && !string.IsNullOrWhiteSpace(config["Piste:ClientSecret"]);
 
@@ -103,7 +122,10 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
             }
 
             var json = JsonNode.Parse(await reponse.Content.ReadAsStringAsync(ct));
-            return Analyser(json);
+            var elements = Analyser(json);
+            journal.LogInformation("Légifrance : « {Terme} » depuis le {Depuis} → {Lus} texte(s) lu(s) sur {Total} trouvé(s)",
+                terme, depuis.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), elements.Count, json?["totalResultNumber"]?.ToString() ?? "?");
+            return elements;
         }
     }
 
@@ -135,7 +157,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         await Verrou.WaitAsync(ct);
         try
         {
-            if (_jeton is not null && DateTime.UtcNow < _expiration) return _jeton;
+            if (_jeton is not null && _jetonPour == UrlJeton && DateTime.UtcNow < _expiration) return _jeton;
 
             using var reponse = await clients.CreateClient(NomClient).PostAsync(UrlJeton, new FormUrlEncodedContent(new Dictionary<string, string>
             {
@@ -153,6 +175,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
             _jeton = doc.RootElement.GetProperty("access_token").GetString();
             var duree = doc.RootElement.TryGetProperty("expires_in", out var e) && e.TryGetInt32(out var s) ? s : 3600;
             _expiration = DateTime.UtcNow.AddSeconds(Math.Max(60, duree - 60));
+            _jetonPour = UrlJeton;
             return _jeton!;
         }
         catch (HttpRequestException ex)
