@@ -6,7 +6,11 @@ using System.Xml.Linq;
 
 namespace KloroFil.Web.Services;
 
-public record ElementFlux(string Titre, string? Lien, string? Resume, DateTime? Date);
+public record ElementFlux(string Titre, string? Lien, string? Resume, DateTime? Date)
+{
+    /// <summary>Référence officielle (NOR pour Légifrance).</summary>
+    public string? Reference { get; init; }
+}
 
 /// <summary>Résultat d'une lecture : les éléments et l'adresse du flux réellement lu (peut différer si elle a été détectée dans une page web).</summary>
 public record LectureFlux(List<ElementFlux> Elements, string UrlFlux);

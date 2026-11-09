@@ -94,6 +94,7 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
             {
                 Titre = Tronquer(e.Titre, 600),
                 Resume = e.Resume,
+                Reference = e.Reference is null ? null : Tronquer(e.Reference, 100),
                 Url = lien,
                 DatePublication = e.Date?.Date,
                 Type = DevinerType(e.Titre),

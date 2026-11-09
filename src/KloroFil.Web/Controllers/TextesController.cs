@@ -16,7 +16,8 @@ public class TextesController(KloroFilDbContext db) : Controller
         if (statut is not null) requete = requete.Where(t => t.Statut == statut);
         if (domaine is not null) requete = requete.Where(t => t.Domaine == domaine);
         if (!string.IsNullOrWhiteSpace(q))
-            requete = requete.Where(t => t.Titre.Contains(q) || (t.Reference != null && t.Reference.Contains(q)) || (t.RubriquesConcernees != null && t.RubriquesConcernees.Contains(q)));
+            requete = requete.Where(t => t.Titre.Contains(q) || (t.Reference != null && t.Reference.Contains(q))
+                || (t.RubriquesConcernees != null && t.RubriquesConcernees.Contains(q)) || (t.Resume != null && t.Resume.Contains(q)));
 
         ViewBag.Statut = statut;
         ViewBag.Domaine = domaine;
@@ -112,6 +113,67 @@ public class TextesController(KloroFilDbContext db) : Controller
             $"{r.SourcesLues} source(s) lue(s), {r.TextesAjoutes} nouveau(x) texte(s)." +
             (r.Erreurs.Count == 0 ? "" : " Erreurs : " + string.Join(" | ", r.Erreurs));
         return RedirectToAction(nameof(Index), new { statut = StatutVeille.AAnalyser });
+    }
+
+    /// <summary>Importe un texte du Journal officiel par son NOR, quelle que soit sa date (textes de référence anciens).</summary>
+    [HttpPost, Authorize(Roles = RolesKloroFil.Gestion)]
+    public async Task<IActionResult> ImporterNor(string? nor, [FromServices] LegifranceClient legifrance, CancellationToken ct)
+    {
+        nor = nor?.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(nor) || nor.Length > 20 || !nor.All(char.IsLetterOrDigit))
+        {
+            TempData["Erreur"] = "Indiquez un NOR valide (ex. ATEP9760302A).";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var existant = await db.Textes.FirstOrDefaultAsync(t => t.Reference == nor, ct);
+        if (existant is not null)
+        {
+            TempData["Info"] = $"Le texte {nor} est déjà dans la veille.";
+            return RedirectToAction(nameof(Details), new { id = existant.Id });
+        }
+
+        ElementFlux? e;
+        try
+        {
+            e = await legifrance.RechercherParNorAsync(nor, ct);
+        }
+        catch (LectureFluxException ex)
+        {
+            TempData["Erreur"] = ex.Message;
+            return RedirectToAction(nameof(Index), new { q = nor });
+        }
+        if (e is null)
+        {
+            TempData["Erreur"] = $"Aucun texte du Journal officiel ne porte le NOR {nor}.";
+            return RedirectToAction(nameof(Index), new { q = nor });
+        }
+
+        existant = await db.Textes.FirstOrDefaultAsync(t => t.Url == e.Lien, ct);
+        if (existant is not null)
+        {
+            existant.Reference ??= e.Reference ?? nor;
+            await db.SaveChangesAsync(ct);
+            TempData["Info"] = $"Le texte {nor} est déjà dans la veille.";
+            return RedirectToAction(nameof(Details), new { id = existant.Id });
+        }
+
+        var texte = new TexteReglementaire
+        {
+            Titre = e.Titre.Length > 600 ? e.Titre[..600] : e.Titre,
+            Reference = e.Reference ?? nor,
+            Url = e.Lien,
+            Resume = e.Resume,
+            DatePublication = e.Date,
+            Type = VeilleService.DevinerType(e.Titre),
+            Domaine = Domaine.Icpe,
+            Statut = StatutVeille.AAnalyser,
+            DateDetection = DateTime.Now
+        };
+        db.Textes.Add(texte);
+        await db.SaveChangesAsync(ct);
+        TempData["Succes"] = $"Texte {texte.Reference} importé depuis Légifrance.";
+        return RedirectToAction(nameof(Details), new { id = texte.Id });
     }
 
     // ---- Exigences ---------------------------------------------------------------------------

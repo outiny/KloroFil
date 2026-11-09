@@ -66,6 +66,16 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         return resultats.Values.OrderByDescending(e => e.Date).ToList();
     }
 
+    /// <summary>Recherche d'un texte du JORF par son NOR, quelle que soit sa date (pour les textes de référence anciens).</summary>
+    public async Task<ElementFlux?> RechercherParNorAsync(string nor, CancellationToken ct)
+    {
+        if (!EstConfigure)
+            throw new LectureFluxException("L'import depuis Légifrance utilise l'API PISTE : renseignez Piste:ClientId et Piste:ClientSecret (voir le README).");
+        nor = nor.Trim().ToUpperInvariant();
+        var (elements, _) = await RechercherPageAsync("NOR", nor, null, 1, 10, ct);
+        return elements.FirstOrDefault(e => string.Equals(e.Reference, nor, StringComparison.OrdinalIgnoreCase)) ?? elements.FirstOrDefault();
+    }
+
     /// <summary>Toutes les pages de résultats d'un mot-clé, dans la limite de Piste:MaxParMotCle (200 par défaut).</summary>
     private async Task<List<ElementFlux>> RechercherAsync(string terme, DateTime depuis, CancellationToken ct)
     {
@@ -75,7 +85,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         int? total = null;
         for (var page = 1; tous.Count < maximum; page++)
         {
-            var (elements, nb) = await RechercherPageAsync(terme, depuis, page, taillePage, ct);
+            var (elements, nb) = await RechercherPageAsync("ALL", terme, depuis, page, taillePage, ct);
             total ??= nb;
             tous.AddRange(elements);
             if (elements.Count < taillePage || (total is { } t && tous.Count >= t)) break;
@@ -86,8 +96,21 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         return tous;
     }
 
-    private async Task<(List<ElementFlux> Elements, int? Total)> RechercherPageAsync(string terme, DateTime depuis, int page, int taillePage, CancellationToken ct)
+    private async Task<(List<ElementFlux> Elements, int? Total)> RechercherPageAsync(string typeChamp, string terme, DateTime? depuis, int page, int taillePage, CancellationToken ct)
     {
+        // Filtre de date seulement pour la veille ; une recherche par NOR porte sur tout le JORF.
+        var filtres = new JsonArray();
+        if (depuis is { } d)
+            filtres.Add(new JsonObject
+            {
+                ["facette"] = "DATE_PUBLICATION",
+                ["dates"] = new JsonObject
+                {
+                    ["start"] = d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    ["end"] = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                }
+            });
+
         var corps = new JsonObject
         {
             ["fond"] = "JORF",
@@ -95,7 +118,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
             {
                 ["champs"] = new JsonArray(new JsonObject
                 {
-                    ["typeChamp"] = "ALL",
+                    ["typeChamp"] = typeChamp,
                     ["operateur"] = "ET",
                     ["criteres"] = new JsonArray(new JsonObject
                     {
@@ -104,15 +127,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
                         ["operateur"] = "ET"
                     })
                 }),
-                ["filtres"] = new JsonArray(new JsonObject
-                {
-                    ["facette"] = "DATE_PUBLICATION",
-                    ["dates"] = new JsonObject
-                    {
-                        ["start"] = depuis.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                        ["end"] = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                    }
-                }),
+                ["filtres"] = filtres,
                 ["pageNumber"] = page,
                 ["pageSize"] = taillePage,
                 ["operateur"] = "ET",
@@ -226,14 +241,14 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
                 .Take(3)
                 .ToList() ?? [];
             var resume = Nettoyer(string.Join(" … ", extraits));
-            var nor = Texte(r["nor"]);
-            if (nor is not null) resume = $"NOR : {nor}" + (resume is null ? "" : " – " + resume);
-
             liste.Add(new ElementFlux(
                 Nettoyer(titre)!,
                 "https://www.legifrance.gouv.fr/jorf/id/" + Uri.EscapeDataString(id),
                 resume,
-                LireDate(r["datePublication"]) ?? LireDate(r["dateSignature"]) ?? LireDate(r["date"])));
+                LireDate(r["datePublication"]) ?? LireDate(r["dateSignature"]) ?? LireDate(r["date"]))
+            {
+                Reference = Texte(r["nor"])?.Trim()
+            });
         }
         return liste;
     }

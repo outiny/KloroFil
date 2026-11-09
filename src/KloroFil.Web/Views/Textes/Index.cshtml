@@ -36,11 +36,30 @@
     <input type="search" name="q" value="@ViewBag.Q" placeholder="Titre, NOR, rubrique…" />
     <button class="btn btn--secondaire">Filtrer</button>
 </form>
+@if (gerer)
+{
+    <form asp-action="ImporterNor" method="post" class="filtres">
+        <input name="nor" placeholder="NOR (ex. ATEP9760302A)" maxlength="20" autocomplete="off" />
+        <button class="btn btn--secondaire" title="Ajoute un texte du Journal officiel, même ancien, à partir de son NOR">Importer de Légifrance</button>
+    </form>
+}
 
 <div class="carte defile">
     @if (Model.Count == 0)
     {
-        <p class="vide">Aucun texte pour ces critères.</p>
+        string? q = ViewBag.Q;
+        var ressembleNor = q is { Length: >= 8 and <= 20 } && q.Trim().All(char.IsLetterOrDigit) && q.Trim().Any(char.IsDigit) && q.Trim().Any(char.IsLetter);
+        <div class="vide">
+            Aucun texte pour ces critères.
+            @if (gerer && ressembleNor)
+            {
+                <form asp-action="ImporterNor" method="post" class="actions" style="margin-top:10px">
+                    <input type="hidden" name="nor" value="@q!.Trim()" />
+                    <span>La veille ne parcourt que les 12 derniers mois. Ce texte est peut-être plus ancien :</span>
+                    <button class="btn btn--primaire btn--petit">Importer @q!.Trim().ToUpperInvariant() depuis Légifrance</button>
+                </form>
+            }
+        </div>
     }
     else
     {
