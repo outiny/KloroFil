@@ -71,6 +71,9 @@ builder.Services.AddHttpClient(LecteurFlux.NomClient, c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("KloroFil/1.0 (veille reglementaire)");
 });
 builder.Services.AddScoped<LecteurFlux>();
+// Légifrance : API officielle de la DILA via PISTE (identifiants Piste:ClientId / Piste:ClientSecret dans les secrets).
+builder.Services.AddHttpClient(LegifranceClient.NomClient, c => c.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddScoped<LegifranceClient>();
 builder.Services.AddScoped<VeilleService>();
 builder.Services.AddHostedService<VeillePlanifiee>();
 

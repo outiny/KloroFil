@@ -12,7 +12,7 @@ public record ResultatVeille(int SourcesLues, int TextesAjoutes, List<string> Er
 /// Interroge les sources de veille actives, filtre les nouveautés par mots-clés et les enregistre
 /// comme textes « À analyser ». Les rubriques ICPE du parc citées dans le texte sont repérées automatiquement.
 /// </summary>
-public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<VeilleService> journal)
+public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, LegifranceClient legifrance, ILogger<VeilleService> journal)
 {
     private static readonly CompareInfo Comparaison = CultureInfo.GetCultureInfo("fr-FR").CompareInfo;
     private const CompareOptions SansCasseNiAccent = CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
@@ -51,7 +51,14 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
 
     private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte)> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
     {
-        var lecture = await lecteur.LireAsync(source.Url, ct);
+        var motsCles = (source.MotsCles ?? "")
+            .Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        // Légifrance refuse les robots : ses textes sont lus par l'API officielle (PISTE), déjà filtrée par les mots-clés.
+        var parApi = LegifranceClient.EstLegifrance(source.Url);
+        var lecture = parApi
+            ? new LectureFlux(await legifrance.RechercherJorfAsync(motsCles, source.DerniereLecture?.Date.AddDays(-7) ?? DateTime.Today.AddDays(-90), ct), source.Url)
+            : await lecteur.LireAsync(source.Url, ct);
         var elements = lecture.Elements;
 
         // L'adresse saisie était une page web : on retient le flux trouvé pour les prochaines lectures.
@@ -63,11 +70,9 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, ILogger<Ve
             source.Url = lecture.UrlFlux;
             fluxDetecte = lecture.UrlFlux;
         }
-        var motsCles = (source.MotsCles ?? "")
-            .Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var retenus = elements
-            .Where(e => motsCles.Length == 0 || motsCles.Any(m => Contient(e.Titre + " " + e.Resume, m)))
+            .Where(e => parApi || motsCles.Length == 0 || motsCles.Any(m => Contient(e.Titre + " " + e.Resume, m)))
             .Where(e => !string.IsNullOrWhiteSpace(e.Lien))
             .ToList();
         if (retenus.Count == 0) return (elements.Count, 0, 0, fluxDetecte);

@@ -56,6 +56,25 @@ majuscules ; vide = tout le flux). Exemple fonctionnel :
 `https://news.google.com/rss/search?q=ICPE+installations+class%C3%A9es&hl=fr&gl=FR&ceid=FR:fr`.
 Le flux de votre prestataire de veille, de la DREAL ou d'un organisme professionnel peut être ajouté de la même façon.
 
+Si l'adresse saisie est une page web (ex. `https://aida.ineris.fr/`), KloroFil cherche le flux RSS qu'elle annonce
+et le retient à la place de la page.
+
+### Légifrance (Journal officiel) via l'API PISTE
+
+Légifrance refuse les lectures automatiques de son site : une source dont l'adresse est sur `legifrance.gouv.fr`
+est interrogée par l'**API Légifrance de la DILA** (portail [PISTE](https://piste.gouv.fr)).
+Chaque mot-clé de la source donne une recherche dans le fonds **JORF**, limitée aux textes publiés depuis la
+dernière lecture (90 jours à la première).
+
+1. Sur piste.gouv.fr, dans votre application, ajoutez l'API **Légifrance** et acceptez ses conditions d'utilisation.
+2. Copiez la *client_id* et le *client_secret* (OAuth) de l'application dans les secrets de KloroFil :
+   ```bash
+   dotnet user-secrets --project src/KloroFil.Web set "Piste:ClientId" "…"
+   dotnet user-secrets --project src/KloroFil.Web set "Piste:ClientSecret" "…"
+   ```
+   Pour le bac à sable PISTE, ajoutez `Piste:BacASable` = `true`.
+3. Ajoutez une source d'adresse `https://www.legifrance.gouv.fr/` avec vos mots-clés (ex. « installations classées, 2565 »).
+
 Réglages (`appsettings.json`, section `Veille`) : `IntervalleHeures` (24 par défaut, 0 = désactivée) et
 `DelaiDemarrageMinutes`. Les boutons « Lancer la veille » et « Lire maintenant » déclenchent une lecture immédiate.
 
