@@ -78,6 +78,12 @@ Chaque mot-clé de la source donne une recherche dans le fonds **JORF** sur les 
 (`Veille:ProfondeurJours`, 365 par défaut), 200 textes au plus par mot-clé (`Piste:MaxParMotCle`).
 Les textes déjà connus sont ignorés : seuls les nouveaux arrivent « À analyser ».
 
+**Textes de référence par rubrique** : pour chaque rubrique ICPE suivie (celles des sites, menu *Sites ICPE*, et
+les mots-clés à 4 chiffres de la source, ex. « 2565 »), la lecture recherche aussi, **sans limite de date**, les
+textes dont le titre contient le numéro de rubrique : arrêtés de prescriptions générales (déclaration,
+enregistrement, autorisation) et leurs modifications. Il n'est donc pas nécessaire de connaître les NOR ; le bouton
+« Importer de Légifrance » reste disponible pour ajouter un texte précis.
+
 1. Sur piste.gouv.fr, dans votre application, ajoutez l'API **Légifrance** et acceptez ses conditions d'utilisation.
 2. Copiez la *client_id* et le *client_secret* (OAuth) de l'application dans les secrets de KloroFil :
    ```bash

@@ -72,32 +72,58 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         if (!EstConfigure)
             throw new LectureFluxException("L'import depuis Légifrance utilise l'API PISTE : renseignez Piste:ClientId et Piste:ClientSecret (voir le README).");
         nor = nor.Trim().ToUpperInvariant();
-        var (elements, _) = await RechercherPageAsync("NOR", nor, null, 1, 10, ct);
+        var (elements, _) = await RechercherPageAsync("NOR", [nor], null, 1, 10, ct);
         return elements.FirstOrDefault(e => string.Equals(e.Reference, nor, StringComparison.OrdinalIgnoreCase)) ?? elements.FirstOrDefault();
     }
 
+    /// <summary>
+    /// Textes de référence d'une rubrique ICPE, quelle que soit leur date : tous les textes du JORF dont le titre contient
+    /// le numéro de la rubrique et le mot « installations » (arrêtés de prescriptions générales D / DC / E / A, décrets de nomenclature…).
+    /// </summary>
+    public async Task<List<ElementFlux>> RechercherTextesDeReferenceAsync(IEnumerable<string> rubriques, CancellationToken ct)
+    {
+        if (!EstConfigure)
+            throw new LectureFluxException(
+                "Légifrance est lu par l'API PISTE : renseignez Piste:ClientId et Piste:ClientSecret dans les secrets de l'application (voir le README).");
+
+        var resultats = new Dictionary<string, ElementFlux>(StringComparer.OrdinalIgnoreCase);
+        foreach (var rubrique in rubriques.Distinct())
+            foreach (var e in await RechercherToutesPagesAsync("TITLE", [rubrique, "installations"], null, 100, $"rubrique {rubrique} (textes de référence)", ct))
+                resultats.TryAdd(e.Lien!, e);
+        return resultats.Values.OrderByDescending(e => e.Date).ToList();
+    }
+
     /// <summary>Toutes les pages de résultats d'un mot-clé, dans la limite de Piste:MaxParMotCle (200 par défaut).</summary>
-    private async Task<List<ElementFlux>> RechercherAsync(string terme, DateTime depuis, CancellationToken ct)
+    private Task<List<ElementFlux>> RechercherAsync(string terme, DateTime depuis, CancellationToken ct) =>
+        RechercherToutesPagesAsync("ALL", [terme], depuis, config.GetValue("Piste:MaxParMotCle", 200),
+            $"« {terme} » depuis le {depuis.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}", ct);
+
+    private async Task<List<ElementFlux>> RechercherToutesPagesAsync(string typeChamp, IReadOnlyList<string> termes, DateTime? depuis,
+        int maximum, string libelle, CancellationToken ct)
     {
         const int taillePage = 50;   // maximum accepté par l'API
-        var maximum = Math.Max(taillePage, config.GetValue("Piste:MaxParMotCle", 200));
+        maximum = Math.Max(taillePage, maximum);
         var tous = new List<ElementFlux>();
         int? total = null;
         for (var page = 1; tous.Count < maximum; page++)
         {
-            var (elements, nb) = await RechercherPageAsync("ALL", terme, depuis, page, taillePage, ct);
+            var (elements, nb) = await RechercherPageAsync(typeChamp, termes, depuis, page, taillePage, ct);
             total ??= nb;
             tous.AddRange(elements);
             if (elements.Count < taillePage || (total is { } t && tous.Count >= t)) break;
         }
 
-        journal.LogInformation("Légifrance : « {Terme} » depuis le {Depuis} → {Lus} texte(s) lu(s) sur {Total} trouvé(s)",
-            terme, depuis.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), tous.Count, total?.ToString() ?? "?");
+        journal.LogInformation("Légifrance : {Recherche} → {Lus} texte(s) lu(s) sur {Total} trouvé(s)", libelle, tous.Count, total?.ToString() ?? "?");
         return tous;
     }
 
-    private async Task<(List<ElementFlux> Elements, int? Total)> RechercherPageAsync(string typeChamp, string terme, DateTime? depuis, int page, int taillePage, CancellationToken ct)
+    /// <summary>Une page de résultats ; les termes sont tous exigés (ET) dans le champ indiqué.</summary>
+    private async Task<(List<ElementFlux> Elements, int? Total)> RechercherPageAsync(string typeChamp, IReadOnlyList<string> termes, DateTime? depuis, int page, int taillePage, CancellationToken ct)
     {
+        var criteres = new JsonArray();
+        foreach (var terme in termes)
+            criteres.Add(new JsonObject { ["valeur"] = terme, ["typeRecherche"] = "EXACTE", ["operateur"] = "ET" });
+
         // Filtre de date seulement pour la veille ; une recherche par NOR porte sur tout le JORF.
         var filtres = new JsonArray();
         if (depuis is { } d)
@@ -120,12 +146,7 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
                 {
                     ["typeChamp"] = typeChamp,
                     ["operateur"] = "ET",
-                    ["criteres"] = new JsonArray(new JsonObject
-                    {
-                        ["valeur"] = terme,
-                        ["typeRecherche"] = "EXACTE",
-                        ["operateur"] = "ET"
-                    })
+                    ["criteres"] = criteres
                 }),
                 ["filtres"] = filtres,
                 ["pageNumber"] = page,

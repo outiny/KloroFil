@@ -106,15 +106,39 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         t.AnalysePar = "KloroFil";
     }
 
-    private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte, int Ecartes)> LireSourceAsync(SourceVeille source, List<string> rubriques, CancellationToken ct)
+    /// <summary>
+    /// Légifrance : nouveautés des mots-clés sur la période de veille, plus les textes de référence (sans limite de date) de chaque
+    /// rubrique ICPE — celles des sites et les mots-clés à 4 chiffres de la source. Les NOR n'ont donc pas à être connus.
+    /// </summary>
+    private async Task<List<ElementFlux>> LireLegifranceAsync(SourceVeille source, string[] motsCles, List<string> rubriques, CancellationToken ct)
+    {
+        var nouveautes = await legifrance.RechercherJorfAsync(motsCles, await DebutRechercheAsync(source, ct), ct);
+        if (rubriques.Count == 0) return nouveautes;
+
+        var reference = await legifrance.RechercherTextesDeReferenceAsync(rubriques, ct);
+        return nouveautes.Concat(reference)
+            .GroupBy(e => e.Lien, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+    }
+
+    private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte, int Ecartes)> LireSourceAsync(SourceVeille source, List<string> rubriquesDuParc, CancellationToken ct)
     {
         var motsCles = (source.MotsCles ?? "")
             .Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        // Rubriques ICPE suivies : celles des sites et les mots-clés à 4 chiffres de la source.
+        var rubriques = rubriquesDuParc
+            .Concat(motsCles.Where(m => m.Length == 4 && m.All(char.IsDigit)))
+            .Select(r => r.Trim())
+            .Where(r => r.Length > 0)
+            .Distinct()
+            .ToList();
+
         // Légifrance refuse les robots : ses textes sont lus par l'API officielle (PISTE), déjà filtrée par les mots-clés.
         var parApi = LegifranceClient.EstLegifrance(source.Url);
         var lecture = parApi
-            ? new LectureFlux(await legifrance.RechercherJorfAsync(motsCles, await DebutRechercheAsync(source, ct), ct), source.Url)
+            ? new LectureFlux(await LireLegifranceAsync(source, motsCles, rubriques, ct), source.Url)
             : await lecteur.LireAsync(source.Url, ct);
         var elements = lecture.Elements;
 
