@@ -64,7 +64,7 @@
     </div>
 }
 
-<div class="carte defile">
+<div class="carte defile ligne-ancre" id="exigences">
     <h2 class="carte__titre">
         Exigences applicables et évaluation de conformité (@Model.Exigences.Count)
         @if (gerer)
@@ -92,7 +92,7 @@
             <tbody>
                 @foreach (var e in Model.Exigences)
                 {
-                    <tr>
+                    <tr id="exigence-@e.Id" class="ligne-ancre">
                         <td style="white-space:nowrap">@e.Article.Texte()</td>
                         <td>
                             @{

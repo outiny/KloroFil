@@ -220,3 +220,8 @@ a.kpi:hover { border-color: var(--vert-moyen); }
 .avancement-compact { min-width: 150px; }
 .ligne-jauge { display: grid; grid-template-columns: 12px 1fr 38px; align-items: center; gap: 6px; font-size: .8rem; }
 .ligne-jauge .jauge { min-width: 70px; }
+
+/* Retour sur la ligne d'où l'on vient (ancre #exigence-…) : marge sous l'en-tête et surlignage bref. */
+.ligne-ancre { scroll-margin-top: 90px; }
+tr.ligne-ancre:target td { animation: surlignage 2.5s ease-out; }
+@keyframes surlignage { from { background: #FFF3B0; } to { background: transparent; } }

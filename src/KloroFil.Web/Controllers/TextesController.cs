@@ -337,7 +337,8 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         if (evaluation.Conformite is Conformite.NonConforme or Conformite.NcEnCours &&
             !await db.Actions.AnyAsync(a => a.ExigenceId == exigence.Id && (a.Statut == StatutAction.AFaire || a.Statut == StatutAction.EnCours)))
             TempData["Info"] = "Exigence non conforme sans action ouverte dans le plan d'actions : pensez à en créer une (bouton « + Action »).";
-        return RedirectToAction(nameof(Details), new { id = texte.Id });
+        // Retour à la ligne de l'exigence dans la fiche du texte, plutôt qu'en haut de page.
+        return RedirectToAction(nameof(Details), null, new { id = texte.Id }, $"exigence-{exigence.Id}");
     }
 
     [HttpPost, Authorize(Roles = RolesKloroFil.Gestion)]
@@ -349,7 +350,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         db.Exigences.Remove(e);
         await db.SaveChangesAsync();
         TempData["Succes"] = "Exigence supprimée.";
-        return RedirectToAction(nameof(Details), new { id = e.TexteReglementaireId });
+        return RedirectToAction(nameof(Details), null, new { id = e.TexteReglementaireId }, "exigences");
     }
 
     /// <summary>Registre de conformité : toutes les exigences des textes applicables.</summary>
