@@ -214,7 +214,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        int ajoutes = 0, modifies = 0;
+        int ajoutes = 0, modifies = 0, manuels = 0;
         var existantes = texte.Exigences.Where(e => e.Article != null)
             .GroupBy(e => e.Article!, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
@@ -223,8 +223,11 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             var article = p.Numero.Length > 50 ? p.Numero[..50] : p.Numero;
             if (existantes.TryGetValue(article, out var e))
             {
-                if (Normaliser(e.Description) == Normaliser(p.Description)) continue;
+                if (Normaliser(e.Description) == Normaliser(p.Description)) { e.Importee = true; continue; }
+                // Libellé réécrit à la main dans KloroFil : on ne l'écrase pas, on le signale.
+                if (!e.Importee) { manuels++; continue; }
                 e.Description = p.Description;
+                e.Importee = true;
                 // Rédaction modifiée : chaque évaluation déjà faite repasse « En cours d'analyse », avec une trace de l'ancienne.
                 foreach (var ev in e.Evaluations.Where(v => v.Conformite is not (Conformite.EnCoursAnalyse or Conformite.NonConcerne)))
                 {
@@ -237,7 +240,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             }
             else
             {
-                db.Exigences.Add(new Exigence { TexteReglementaireId = id, Article = article, Description = p.Description });
+                db.Exigences.Add(new Exigence { TexteReglementaireId = id, Article = article, Description = p.Description, Importee = true });
                 ajoutes++;
             }
         }
@@ -246,6 +249,8 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         TempData["Succes"] = ajoutes + modifies == 0
             ? $"Les {points.Count} points du texte en vigueur sont déjà à jour."
             : $"{points.Count} point(s) lu(s) sur Légifrance : {ajoutes} exigence(s) ajoutée(s), {modifies} mise(s) à jour (repassées « En cours d'analyse »).";
+        if (manuels > 0)
+            TempData["Succes"] += $" {manuels} exigence(s) dont vous avez modifié le libellé diffère(nt) de Légifrance : non écrasée(s), à vérifier.";
 
         // Certaines annexes ne sont pas reproduites au Journal officiel (publiées au Bulletin officiel du ministère).
         var nonReproduites = points.Where(p => AnnexeNonReproduite().IsMatch(p.Contenu)).Select(p => p.Numero).ToList();
@@ -254,7 +259,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
                 + "Consultez la version consolidée sur AIDA (aida.ineris.fr) et saisissez ses prescriptions avec « + Ajouter une exigence ».";
         return RedirectToAction(nameof(Details), new { id });
 
-        static string Normaliser(string s) => string.Join(' ', s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        static string Normaliser(string s) => NormaliserTexte(s);
     }
 
     // ---- Exigences ---------------------------------------------------------------------------
@@ -307,8 +312,14 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             return View(vm);
         }
 
+        // Libellé inchangé (aux espaces et retours à la ligne près, que le navigateur renvoie en CRLF) : on garde le texte importé.
+        // Réécrit à la main : il devient une saisie KloroFil.
+        if (id is null || NormaliserTexte(exigence.Description) != NormaliserTexte(vm.Exigence.Description))
+        {
+            exigence.Description = vm.Exigence.Description;
+            exigence.Importee = false;
+        }
         exigence.Article = vm.Exigence.Article;
-        exigence.Description = vm.Exigence.Description;
         if (id is null) db.Exigences.Add(exigence);
 
         var evaluation = exigence.Evaluation(vm.Phase);
@@ -377,4 +388,11 @@ public partial class TextesController
 {
     [System.Text.RegularExpressions.GeneratedRegex(@"publiée? au Bulletin officiel", System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
     private static partial System.Text.RegularExpressions.Regex AnnexeNonReproduite();
+}
+
+public partial class TextesController
+{
+    /// <summary>Texte comparable : espaces, tabulations et retours à la ligne ramenés à un seul espace.</summary>
+    private static string NormaliserTexte(string? s) =>
+        string.Join(' ', (s ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 }

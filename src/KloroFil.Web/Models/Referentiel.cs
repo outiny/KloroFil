@@ -224,6 +224,9 @@ public class Exigence
     [Required(ErrorMessage = "L'exigence est obligatoire."), Display(Name = "Exigence")]
     public string Description { get; set; } = "";
 
+    /// <summary>Texte repris tel quel de Légifrance (false : saisi ou modifié dans KloroFil).</summary>
+    public bool Importee { get; set; }
+
     [Display(Name = "Conformité")]
     public Conformite Conformite { get; set; }
 

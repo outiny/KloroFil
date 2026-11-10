@@ -313,6 +313,9 @@ namespace KloroFil.Web.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<bool>("Importee")
+                        .HasColumnType("bit");
+
                     b.Property<int>("TexteReglementaireId")
                         .HasColumnType("int");
 

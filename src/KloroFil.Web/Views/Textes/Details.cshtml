@@ -87,6 +87,7 @@
     }
     else
     {
+        <div class="legende-sources"><span><span class="etiquette-source etiquette-source--importe" style="margin:0">Importé de Légifrance</span> texte officiel</span><span><span class="etiquette-source etiquette-source--saisie" style="margin:0">Saisi dans KloroFil</span> exigences ajoutées et commentaires d'évaluation, en bleu</span></div>
         <table class="table">
             <thead><tr><th>Article</th><th>Exigence</th><th>Législation</th><th>Récépissé</th><th></th></tr></thead>
             <tbody>
@@ -94,12 +95,13 @@
                 {
                     <tr id="exigence-@e.Id" class="ligne-ancre">
                         <td style="white-space:nowrap">@e.Article.Texte()</td>
-                        <td>
+                        <td class="@(e.Importee ? "" : "saisie")">
                             @{
                                 var lignes = e.Description.Split('\n', 2);
                                 var titre = lignes.Length > 1 && lignes[0].Length <= 200 ? lignes[0] : null;
                                 var corps = titre is null ? e.Description : lignes[1];
                             }
+                            @if (!e.Importee) { <span class="etiquette-source etiquette-source--saisie" style="margin:0 0 4px">Saisi dans KloroFil</span> }
                             @if (titre is not null) { <strong>@titre</strong> }
                             @if (corps.Length <= 300)
                             {
@@ -111,6 +113,23 @@
                                     <summary class="texte-long">@corps[..280]… <span class="discret">(lire la suite)</span></summary>
                                     <div class="texte-long">@corps</div>
                                 </details>
+                            }
+                            @* Commentaires saisis lors des évaluations, en bleu pour les distinguer du texte importé. *@
+                            @foreach (var ev in e.Evaluations.OrderBy(v => v.Phase))
+                            {
+                                var notes = new (string Libelle, string? Valeur)[]
+                                {
+                                    ("Critères", ev.CriteresEvaluation), ("Surveillance", ev.MoyensSurveillance),
+                                    ("Actions correctives", ev.ActionsCorrectives), ("Preuves / commentaire", ev.Preuves)
+                                }.Where(n => !string.IsNullOrWhiteSpace(n.Valeur)).ToList();
+                                if (notes.Count == 0) { continue; }
+                                <dl class="bloc-saisie">
+                                    <div><strong>@ev.Phase.Libelle()</strong></div>
+                                    @foreach (var n in notes)
+                                    {
+                                        <div><dt>@n.Libelle :</dt> <dd class="texte-long">@(n.Valeur!.Length > 300 ? n.Valeur[..300] + "…" : n.Valeur)</dd></div>
+                                    }
+                                </dl>
                             }
                         </td>
                         @foreach (var phase in Affichage.Valeurs<PhaseEvaluation>())

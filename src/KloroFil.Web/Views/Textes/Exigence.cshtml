@@ -35,24 +35,49 @@
     <input type="hidden" asp-for="Phase" />
     <div class="formulaire">
         <div asp-validation-summary="ModelOnly" class="champ--large"></div>
-        @if (gerer)
+        <div class="champ--large legende-sources" style="padding:0">
+            <span><span class="etiquette-source etiquette-source--importe" style="margin:0">Importé de Légifrance</span> texte officiel</span>
+            <span><span class="etiquette-source etiquette-source--saisie" style="margin:0">Saisi dans KloroFil</span> vos commentaires et évaluations</span>
+        </div>
+        @if (Model.Exigence.Importee)
         {
-            <div class="champ"><label asp-for="Exigence.Article"></label><input asp-for="Exigence.Article" /></div>
-            <div class="champ champ--large"><label asp-for="Exigence.Description"></label><textarea asp-for="Exigence.Description" rows="5"></textarea><span asp-validation-for="Exigence.Description"></span></div>
+            @* Texte officiel : affiché tel quel ; un gestionnaire peut encore le réécrire (il devient alors une saisie). *@
+            <div class="champ champ--large">
+                <label>Exigence @Model.Exigence.Article <span class="etiquette-source etiquette-source--importe">Importé de Légifrance</span></label>
+                <div class="bloc-importe texte-long">@Model.Exigence.Description</div>
+                @if (gerer)
+                {
+                    <details style="margin-top:6px">
+                        <summary class="discret">Modifier le libellé (il sera alors considéré comme une saisie)</summary>
+                        <div class="formulaire" style="padding:8px 0 0">
+                            <div class="champ"><label asp-for="Exigence.Article"></label><input asp-for="Exigence.Article" /></div>
+                            <div class="champ champ--large"><label asp-for="Exigence.Description"></label><textarea asp-for="Exigence.Description" rows="5"></textarea><span asp-validation-for="Exigence.Description"></span></div>
+                        </div>
+                    </details>
+                }
+            </div>
+        }
+        else if (gerer)
+        {
+            <div class="champ champ--saisie"><label asp-for="Exigence.Article"></label><input asp-for="Exigence.Article" /></div>
+            <div class="champ champ--large champ--saisie">
+                <label asp-for="Exigence.Description"><span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></label>
+                <textarea asp-for="Exigence.Description" rows="5"></textarea><span asp-validation-for="Exigence.Description"></span>
+            </div>
         }
         else
         {
-            <div class="champ champ--large"><label>Exigence @Model.Exigence.Article</label><p class="texte-long" style="margin:0">@Model.Exigence.Description</p></div>
+            <div class="champ champ--large"><label>Exigence @Model.Exigence.Article <span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></label><div class="bloc-saisie texte-long">@Model.Exigence.Description</div></div>
         }
 
-        <p class="separateur">Évaluation – @Model.Phase.Libelle()</p>
-        <div class="champ"><label asp-for="Evaluation.Conformite"></label><select asp-for="Evaluation.Conformite" asp-items="Affichage.Choix(Model.Evaluation.Conformite)"></select></div>
-        <div class="champ"><label asp-for="Evaluation.DateEvaluation"></label><input asp-for="Evaluation.DateEvaluation" type="date" /></div>
-        <div class="champ"><label asp-for="Evaluation.EvaluePar"></label><input asp-for="Evaluation.EvaluePar" list="responsables" /></div>
-        <div class="champ champ--large"><label asp-for="Evaluation.CriteresEvaluation"></label><textarea asp-for="Evaluation.CriteresEvaluation" rows="3" placeholder="Ce qui permet de dire que l'exigence est respectée : valeur limite, document attendu, fréquence…"></textarea></div>
-        <div class="champ champ--large"><label asp-for="Evaluation.MoyensSurveillance"></label><textarea asp-for="Evaluation.MoyensSurveillance" rows="3" placeholder="Contrôle périodique, mesure, registre, inspection interne, indicateur…"></textarea></div>
-        <div class="champ champ--large"><label asp-for="Evaluation.ActionsCorrectives"></label><textarea asp-for="Evaluation.ActionsCorrectives" rows="3" placeholder="Actions décidées en cas d'écart (à reporter aussi dans le plan d'actions avec « + Action »)."></textarea></div>
-        <div class="champ champ--large"><label asp-for="Evaluation.Preuves"></label><textarea asp-for="Evaluation.Preuves" rows="3" placeholder="Rapport de contrôle, enregistrement, constat, n° et date du récépissé…"></textarea></div>
+        <p class="separateur">Évaluation – @Model.Phase.Libelle() <span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></p>
+        <div class="champ champ--saisie"><label asp-for="Evaluation.Conformite"></label><select asp-for="Evaluation.Conformite" asp-items="Affichage.Choix(Model.Evaluation.Conformite)"></select></div>
+        <div class="champ champ--saisie"><label asp-for="Evaluation.DateEvaluation"></label><input asp-for="Evaluation.DateEvaluation" type="date" /></div>
+        <div class="champ champ--saisie"><label asp-for="Evaluation.EvaluePar"></label><input asp-for="Evaluation.EvaluePar" list="responsables" /></div>
+        <div class="champ champ--large champ--saisie"><label asp-for="Evaluation.CriteresEvaluation"></label><textarea asp-for="Evaluation.CriteresEvaluation" rows="3" placeholder="Ce qui permet de dire que l'exigence est respectée : valeur limite, document attendu, fréquence…"></textarea></div>
+        <div class="champ champ--large champ--saisie"><label asp-for="Evaluation.MoyensSurveillance"></label><textarea asp-for="Evaluation.MoyensSurveillance" rows="3" placeholder="Contrôle périodique, mesure, registre, inspection interne, indicateur…"></textarea></div>
+        <div class="champ champ--large champ--saisie"><label asp-for="Evaluation.ActionsCorrectives"></label><textarea asp-for="Evaluation.ActionsCorrectives" rows="3" placeholder="Actions décidées en cas d'écart (à reporter aussi dans le plan d'actions avec « + Action »)."></textarea></div>
+        <div class="champ champ--large champ--saisie"><label asp-for="Evaluation.Preuves"></label><textarea asp-for="Evaluation.Preuves" rows="3" placeholder="Rapport de contrôle, enregistrement, constat, n° et date du récépissé…"></textarea></div>
 
         <div class="actions champ--large">
             <button class="btn btn--primaire">Enregistrer</button>

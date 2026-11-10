@@ -225,3 +225,18 @@ a.kpi:hover { border-color: var(--vert-moyen); }
 .ligne-ancre { scroll-margin-top: 90px; }
 tr.ligne-ancre:target td { animation: surlignage 2.5s ease-out; }
 @keyframes surlignage { from { background: #FFF3B0; } to { background: transparent; } }
+
+/* --- Distinction texte importé (Légifrance) / saisie dans KloroFil ---------------- */
+:root { --saisie: #154B99; --saisie-fond: #F2F6FC; --saisie-bordure: #C9D7EE; }
+.saisie { color: var(--saisie); }
+.bloc-importe { background: #F5F6F2; border-left: 3px solid #A8ADA2; padding: 8px 12px; border-radius: 4px; color: var(--texte); }
+.bloc-saisie { background: var(--saisie-fond); border-left: 3px solid var(--saisie); padding: 6px 10px; border-radius: 4px; color: var(--saisie); margin-top: 6px; font-size: .9rem; }
+.bloc-saisie dt { font-weight: 600; display: inline; }
+.bloc-saisie dd { display: inline; margin: 0; }
+.bloc-saisie div + div { margin-top: 2px; }
+.champ--saisie input, .champ--saisie textarea, .champ--saisie select { color: var(--saisie); background: #F7FAFE; border-color: var(--saisie-bordure); }
+.champ--saisie label { color: var(--saisie); }
+.etiquette-source { display: inline-block; font-size: .72rem; font-weight: 500; padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.etiquette-source--importe { background: #ECEDE8; color: var(--guery-gris); }
+.etiquette-source--saisie { background: var(--saisie-fond); color: var(--saisie); border: 1px solid var(--saisie-bordure); }
+.legende-sources { display: flex; gap: 14px; flex-wrap: wrap; padding: 8px 16px 0; font-size: .85rem; color: var(--texte-doux); }
