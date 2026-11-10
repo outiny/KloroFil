@@ -58,15 +58,24 @@
 
 <div class="carte defile">
     <h2 class="carte__titre">
-        Exigences applicables et évaluation de conformité
+        Exigences applicables et évaluation de conformité (@Model.Exigences.Count)
         @if (gerer)
         {
-            <a asp-action="Exigence" asp-route-texteId="@Model.Id">+ Ajouter une exigence</a>
+            <span class="actions">
+                @if (KloroFil.Web.Services.LegifranceClient.IdentifiantTexte(Model.Url) is not null)
+                {
+                    <form asp-action="ImporterArticles" asp-route-id="@Model.Id" method="post"
+                          title="Lit la version en vigueur sur Légifrance : un point par article et par paragraphe numéroté des annexes. Réimporter met à jour les points modifiés.">
+                        <button class="btn btn--primaire btn--petit">@(Model.Exigences.Count == 0 ? "Importer les articles et annexes" : "Mettre à jour depuis Légifrance")</button>
+                    </form>
+                }
+                <a asp-action="Exigence" asp-route-texteId="@Model.Id">+ Ajouter une exigence</a>
+            </span>
         }
     </h2>
     @if (Model.Exigences.Count == 0)
     {
-        <p class="vide">Aucune exigence. Pour un texte applicable, décomposez-le en exigences à évaluer périodiquement.</p>
+        <p class="vide">Aucune exigence. Pour un texte applicable, importez ses articles et annexes depuis Légifrance, ou décomposez-le en exigences à évaluer périodiquement.</p>
     }
     else
     {
@@ -77,8 +86,27 @@
                 {
                     var echue = e.ProchaineEvaluation is { } pe && pe < DateTime.Today;
                     <tr class="@(echue ? "retard" : "")">
-                        <td>@e.Article.Texte()</td>
-                        <td>@e.Description @if (!string.IsNullOrWhiteSpace(e.Preuves)) { <div class="discret">@e.Preuves</div> }</td>
+                        <td style="white-space:nowrap">@e.Article.Texte()</td>
+                        <td>
+                            @{
+                                var lignes = e.Description.Split('\n', 2);
+                                var titre = lignes.Length > 1 && lignes[0].Length <= 200 ? lignes[0] : null;
+                                var corps = titre is null ? e.Description : lignes[1];
+                            }
+                            @if (titre is not null) { <strong>@titre</strong> }
+                            @if (corps.Length <= 300)
+                            {
+                                <div class="texte-long">@corps</div>
+                            }
+                            else
+                            {
+                                <details>
+                                    <summary class="texte-long">@corps[..280]… <span class="discret">(lire la suite)</span></summary>
+                                    <div class="texte-long">@corps</div>
+                                </details>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(e.Preuves)) { <div class="discret texte-long">@e.Preuves</div> }
+                        </td>
                         <td><span class="badge badge--@e.Conformite.Couleur()">@e.Conformite.Libelle()</span></td>
                         <td>@e.DateEvaluation.Date() <div class="discret">@e.EvaluePar</div></td>
                         <td class="@(echue ? "retard-texte" : "")">@e.ProchaineEvaluation.Date()</td>

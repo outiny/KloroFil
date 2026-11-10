@@ -98,6 +98,14 @@ recherchés sans limite de date selon le régime le plus élevé des sites (avec
 **Modifications des textes applicables** : pour chaque arrêté classé « Applicable », la lecture recherche les arrêtés
 « modifiant l'arrêté du … » qui reprennent son objet, quelle que soit leur date.
 
+**Import des articles et annexes** : sur la fiche d'un texte Légifrance, le bouton « Importer les articles et annexes »
+lit la version **en vigueur** du texte (API `/consult/lawDecree`) et crée une exigence par article et par paragraphe
+numéroté des annexes (« Annexe I – 5.1 », avec l'intitulé des niveaux supérieurs). Les articles abrogés, l'article
+d'exécution et les points vides du modèle d'arrêté sont ignorés. « Mettre à jour depuis Légifrance » ajoute les
+nouveaux points et met à jour ceux dont la rédaction a changé : ils repassent « À évaluer », l'évaluation précédente
+étant notée dans les preuves ; rien n'est supprimé. Si une annexe n'est publiée qu'au Bulletin officiel du ministère
+(non reproduite sur Légifrance), un message invite à la consulter sur AIDA.
+
 La page *Sources de veille* affiche ce que couvre la lecture (rubriques suivies, socle retenu, nombre d'arrêtés suivis).
 En complément, un contrôle annuel reste conseillé : pages par rubrique d'AIDA (INERIS) et visas (« Vu… ») des
 récépissés et arrêtés préfectoraux du site.

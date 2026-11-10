@@ -93,6 +93,45 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         return resultats.Values.OrderByDescending(e => e.Date).ToList();
     }
 
+    /// <summary>Identifiant Légifrance (JORFTEXT… ou LEGITEXT…) contenu dans une adresse legifrance.gouv.fr, sinon null.</summary>
+    public static string? IdentifiantTexte(string? url) =>
+        url is null ? null : IdTexte().Match(url) is { Success: true } m ? m.Value : null;
+
+    /// <summary>Version en vigueur aujourd'hui d'un texte (articles et annexes), découpée en points à évaluer.</summary>
+    public async Task<List<PointTexte>> LireTexteEnVigueurAsync(string idTexte, CancellationToken ct)
+    {
+        if (!EstConfigure)
+            throw new LectureFluxException("L'import des articles utilise l'API PISTE : renseignez Piste:ClientId et Piste:ClientSecret (voir le README).");
+
+        var corps = new JsonObject
+        {
+            ["textId"] = idTexte,
+            ["date"] = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+        };
+        var reponse = await EnvoyerAsync("/consult/lawDecree", corps, ct);
+        if (reponse.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            _jeton = null;
+            reponse.Dispose();
+            reponse = await EnvoyerAsync("/consult/lawDecree", corps, ct);
+        }
+        using (reponse)
+        {
+            if (reponse.StatusCode == HttpStatusCode.Forbidden)
+                throw new LectureFluxException("PISTE refuse l'accès (403) : vérifiez l'abonnement de votre application à l'API Légifrance.");
+            if (!reponse.IsSuccessStatusCode)
+            {
+                journal.LogWarning("Consultation Légifrance de {Id} en erreur {Code} : {Detail}", idTexte, (int)reponse.StatusCode, await reponse.Content.ReadAsStringAsync(ct));
+                throw new LectureFluxException($"Légifrance n'a pas pu fournir ce texte (erreur {(int)reponse.StatusCode}).");
+            }
+            var points = TexteConsolide.Decouper(JsonNode.Parse(await reponse.Content.ReadAsStringAsync(ct)));
+            journal.LogInformation("Légifrance : texte {Id} → {N} point(s) en vigueur", idTexte, points.Count);
+            return points;
+        }
+    }
+
+    [GeneratedRegex(@"(JORFTEXT|LEGITEXT)\d{12}")] private static partial Regex IdTexte();
+
     /// <summary>Textes du JORF dont le titre contient toutes les expressions indiquées (socle commun, modifications d'un arrêté…).</summary>
     public async Task<List<ElementFlux>> RechercherDansTitreAsync(IReadOnlyList<string> termes, DateTime? depuis, int maximum, string libelle, CancellationToken ct)
     {
@@ -166,13 +205,13 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
             }
         };
 
-        var reponse = await EnvoyerAsync(corps, ct);
+        var reponse = await EnvoyerAsync("/search", corps, ct);
         if (reponse.StatusCode == HttpStatusCode.Unauthorized)
         {
             // Jeton expiré côté serveur : on en redemande un, une fois.
             _jeton = null;
             reponse.Dispose();
-            reponse = await EnvoyerAsync(corps, ct);
+            reponse = await EnvoyerAsync("/search", corps, ct);
         }
 
         using (reponse)
@@ -192,9 +231,9 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         }
     }
 
-    private async Task<HttpResponseMessage> EnvoyerAsync(JsonObject corps, CancellationToken ct)
+    private async Task<HttpResponseMessage> EnvoyerAsync(string chemin, JsonObject corps, CancellationToken ct)
     {
-        var requete = new HttpRequestMessage(HttpMethod.Post, UrlApi + "/search")
+        var requete = new HttpRequestMessage(HttpMethod.Post, UrlApi + chemin)
         {
             Content = new StringContent(corps.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
         };
