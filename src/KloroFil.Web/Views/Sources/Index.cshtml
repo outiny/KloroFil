@@ -1,4 +1,6 @@
 @model List<SourceVeille>
+@inject KloroFil.Web.Data.KloroFilDbContext Db
+@using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Sources de veille";
 }
@@ -48,3 +50,54 @@
         </table>
     }
 </div>
+
+@if (Model.Any(s => KloroFil.Web.Services.LegifranceClient.EstLegifrance(s.Url)))
+{
+    var sites = await Db.Sites.Select(s => new { s.Regime, s.Seveso }).ToListAsync();
+    var regimeMax = sites.Count == 0 ? RegimeIcpe.Declaration : (RegimeIcpe)Math.Max((int)RegimeIcpe.Declaration, sites.Max(s => (int)s.Regime));
+    var seveso = sites.Any(s => s.Seveso != StatutSeveso.NonSeveso);
+    var rubriques = await Db.Classements.Select(c => c.Rubrique).Distinct().OrderBy(r => r).ToListAsync();
+    var motsRubriques = Model.Where(s => KloroFil.Web.Services.LegifranceClient.EstLegifrance(s.Url))
+        .SelectMany(s => (s.MotsCles ?? "").Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .Where(m => m.Length == 4 && m.All(char.IsDigit));
+    var suivies = rubriques.Concat(motsRubriques).Distinct().OrderBy(r => r).ToList();
+    var applicables = await Db.Textes.CountAsync(t => t.Statut == StatutVeille.Applicable && t.Titre.StartsWith("Arrêté"));
+
+    <div class="carte">
+        <h2 class="carte__titre">Ce que couvre la lecture Légifrance</h2>
+        <dl class="fiche">
+            <div class="large">
+                <dt>1. Nouveautés des mots-clés</dt>
+                <dd>Textes publiés au Journal officiel depuis 12 mois contenant l'un des mots-clés de la source.</dd>
+            </div>
+            <div class="large">
+                <dt>2. Textes de référence des rubriques suivies (sans limite de date)</dt>
+                <dd>
+                    @if (suivies.Count == 0)
+                    {
+                        <span class="retard-texte">Aucune rubrique : déclarez celles de vos sites dans « Sites ICPE » (ou ajoutez-les aux mots-clés).</span>
+                    }
+                    else
+                    {
+                        @string.Join(", ", suivies)
+                    }
+                </dd>
+            </div>
+            <div class="large">
+                <dt>3. Socle commun aux ICPE – régime le plus élevé : @regimeMax.Libelle()@(seveso ? ", Seveso" : "")</dt>
+                <dd>
+                    <ul style="margin:4px 0 0; padding-left:18px">
+                        @foreach (var e in KloroFil.Web.Services.SocleIcpe.Applicables(regimeMax, seveso))
+                        {
+                            <li>@e.Libelle</li>
+                        }
+                    </ul>
+                </dd>
+            </div>
+            <div class="large">
+                <dt>4. Modifications des textes applicables</dt>
+                <dd>Arrêtés modifiant l'un des @applicables arrêté(s) classé(s) « Applicable », quelle que soit leur date.</dd>
+            </div>
+        </dl>
+    </div>
+}

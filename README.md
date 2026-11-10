@@ -84,6 +84,24 @@ textes dont le titre contient le numéro de rubrique : arrêtés de prescription
 enregistrement, autorisation) et leurs modifications. Il n'est donc pas nécessaire de connaître les NOR ; le bouton
 « Importer de Légifrance » reste disponible pour ajouter un texte précis.
 
+**Socle commun aux ICPE** (`Services/SocleIcpe.cs`) : textes qui s'appliquent sans citer de rubrique dans leur titre,
+recherchés sans limite de date selon le régime le plus élevé des sites (avec leurs arrêtés modificatifs) :
+
+| Régime | Textes |
+|---|---|
+| Déclaration et plus | Bruit (AM 23/01/1997), registres déchets (AM 31/05/2021), sols pollués et cessation d'activité, décrets de nomenclature (5 ans) |
+| Déclaration avec contrôle | Contrôle périodique |
+| Enregistrement et plus | GEREP (AM 31/01/2008), garanties financières (AM 31/05/2012) |
+| Autorisation | Prélèvements et émissions (AM 02/02/1998), risques accidentels (AM 04/10/2010) |
+| Seveso | Prévention des accidents majeurs (AM 26/05/2014) |
+
+**Modifications des textes applicables** : pour chaque arrêté classé « Applicable », la lecture recherche les arrêtés
+« modifiant l'arrêté du … » qui reprennent son objet, quelle que soit leur date.
+
+La page *Sources de veille* affiche ce que couvre la lecture (rubriques suivies, socle retenu, nombre d'arrêtés suivis).
+En complément, un contrôle annuel reste conseillé : pages par rubrique d'AIDA (INERIS) et visas (« Vu… ») des
+récépissés et arrêtés préfectoraux du site.
+
 1. Sur piste.gouv.fr, dans votre application, ajoutez l'API **Légifrance** et acceptez ses conditions d'utilisation.
 2. Copiez la *client_id* et le *client_secret* (OAuth) de l'application dans les secrets de KloroFil :
    ```bash

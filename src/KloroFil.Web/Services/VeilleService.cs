@@ -27,7 +27,8 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
         "avis de concours", "concours externe", "concours interne", "examen professionnel", "recrutement",
         "portant nomination", "nomination", "cessation de fonctions", "tableau d'avancement", "liste d'aptitude",
         "titularisation", "admission à la retraite", "composition du jury", "Documents et publications",
-        "ordre indemnitaire", "régime indemnitaire", "délégation de signature", "liste des emplois", "baccalauréat"
+        "ordre indemnitaire", "régime indemnitaire", "délégation de signature", "liste des emplois", "baccalauréat",
+        "portant agrément d'un organisme"
     ];
 
     private string[] Exclusions =>
@@ -107,20 +108,47 @@ public class VeilleService(KloroFilDbContext db, LecteurFlux lecteur, Legifrance
     }
 
     /// <summary>
-    /// Légifrance : nouveautés des mots-clés sur la période de veille, plus les textes de référence (sans limite de date) de chaque
-    /// rubrique ICPE — celles des sites et les mots-clés à 4 chiffres de la source. Les NOR n'ont donc pas à être connus.
+    /// Légifrance, sans avoir à connaître les NOR :
+    /// 1. nouveautés des mots-clés sur la période de veille ;
+    /// 2. textes de référence de chaque rubrique suivie (sans limite de date) ;
+    /// 3. socle commun aux ICPE selon le régime le plus élevé du parc (bruit, déchets, GEREP…) ;
+    /// 4. arrêtés modifiant un texte déjà classé « Applicable », quelle que soit leur date.
     /// </summary>
     private async Task<List<ElementFlux>> LireLegifranceAsync(SourceVeille source, string[] motsCles, List<string> rubriques, CancellationToken ct)
     {
-        var nouveautes = await legifrance.RechercherJorfAsync(motsCles, await DebutRechercheAsync(source, ct), ct);
-        if (rubriques.Count == 0) return nouveautes;
+        var tous = new List<ElementFlux>(await legifrance.RechercherJorfAsync(motsCles, await DebutRechercheAsync(source, ct), ct));
 
-        var reference = await legifrance.RechercherTextesDeReferenceAsync(rubriques, ct);
-        return nouveautes.Concat(reference)
+        if (rubriques.Count > 0)
+            tous.AddRange(await legifrance.RechercherTextesDeReferenceAsync(rubriques, ct));
+
+        // Socle commun : régime le plus élevé des sites (déclaration si aucun site n'est encore décrit).
+        var sites = await db.Sites.Select(s => new { s.Regime, s.Seveso }).ToListAsync(ct);
+        var regimeMax = sites.Count == 0 ? RegimeIcpe.Declaration : (RegimeIcpe)Math.Max((int)RegimeIcpe.Declaration, sites.Max(s => (int)s.Regime));
+        var seveso = sites.Any(s => s.Seveso != StatutSeveso.NonSeveso);
+        foreach (var entree in SocleIcpe.Applicables(regimeMax, seveso))
+        {
+            var depuis = entree.DepuisAnnees is { } ans ? DateTime.Today.AddYears(-ans) : (DateTime?)null;
+            var trouves = await legifrance.RechercherDansTitreAsync(entree.Termes, depuis, 100, "socle : " + entree.Libelle, ct);
+            tous.AddRange(trouves.Select(e => e with { Resume = Prefixer($"Texte commun aux ICPE : {entree.Libelle}.", e.Resume) }));
+        }
+
+        // Modifications des arrêtés déjà jugés applicables.
+        var applicables = await db.Textes.Where(t => t.Statut == StatutVeille.Applicable).Select(t => t.Titre).ToListAsync(ct);
+        foreach (var titre in applicables.Distinct())
+        {
+            if (SocleIcpe.TermesModifications(titre) is not { } termes) continue;
+            var trouves = await legifrance.RechercherDansTitreAsync(termes, null, 50, "modifications de « " + Tronquer(titre, 80) + " »", ct);
+            tous.AddRange(trouves.Select(e => e with { Resume = Prefixer($"Modifie un texte applicable : {Tronquer(titre, 300)}.", e.Resume) }));
+        }
+
+        return tous
             .GroupBy(e => e.Lien, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First())
             .ToList();
     }
+
+    private static string Prefixer(string prefixe, string? resume) =>
+        string.IsNullOrWhiteSpace(resume) ? prefixe : prefixe + " " + resume;
 
     private async Task<(int Lus, int Retenus, int Ajoutes, string? FluxDetecte, int Ecartes)> LireSourceAsync(SourceVeille source, List<string> rubriquesDuParc, CancellationToken ct)
     {

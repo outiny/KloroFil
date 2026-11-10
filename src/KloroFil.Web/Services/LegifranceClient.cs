@@ -93,6 +93,15 @@ public partial class LegifranceClient(IHttpClientFactory clients, IConfiguration
         return resultats.Values.OrderByDescending(e => e.Date).ToList();
     }
 
+    /// <summary>Textes du JORF dont le titre contient toutes les expressions indiquées (socle commun, modifications d'un arrêté…).</summary>
+    public async Task<List<ElementFlux>> RechercherDansTitreAsync(IReadOnlyList<string> termes, DateTime? depuis, int maximum, string libelle, CancellationToken ct)
+    {
+        if (!EstConfigure)
+            throw new LectureFluxException(
+                "Légifrance est lu par l'API PISTE : renseignez Piste:ClientId et Piste:ClientSecret dans les secrets de l'application (voir le README).");
+        return await RechercherToutesPagesAsync("TITLE", termes, depuis, maximum, libelle, ct);
+    }
+
     /// <summary>Toutes les pages de résultats d'un mot-clé, dans la limite de Piste:MaxParMotCle (200 par défaut).</summary>
     private Task<List<ElementFlux>> RechercherAsync(string terme, DateTime depuis, CancellationToken ct) =>
         RechercherToutesPagesAsync("ALL", [terme], depuis, config.GetValue("Piste:MaxParMotCle", 200),
