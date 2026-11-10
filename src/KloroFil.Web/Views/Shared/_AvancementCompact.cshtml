@@ -1,0 +1,20 @@
+@* Avancement en une cellule de tableau : deux mini-jauges (L = Législation, R = Récépissé) et la répartition par statut. *@
+@model Avancement?
+@if (Model is null || Model.Total == 0)
+{
+    <span class="discret">–</span>
+}
+else
+{
+    var ordre = Affichage.Valeurs<Conformite>().Where(c => c != Conformite.EnCoursAnalyse).Append(Conformite.EnCoursAnalyse);
+    <div class="avancement-compact" title="Législation : @Model.Legislation / @Model.Total évaluée(s) – Récépissé : @Model.Recepisse / @Model.Total">
+        <div class="ligne-jauge"><span class="discret">L</span><div class="jauge"><span style="width:@Model.PourcentLegislation%; background:@Affichage.CouleurAvancement(Model.PourcentLegislation)"></span></div><span class="discret">@Model.PourcentLegislation %</span></div>
+        <div class="ligne-jauge"><span class="discret">R</span><div class="jauge"><span style="width:@Model.PourcentRecepisse%; background:@Affichage.CouleurAvancement(Model.PourcentRecepisse)"></span></div><span class="discret">@Model.PourcentRecepisse %</span></div>
+        <div class="barre-empilee barre-empilee--fine">
+            @foreach (var c in ordre.Where(c => Model.Nombre(c) > 0))
+            {
+                <span class="seg seg--@(c == Conformite.EnCoursAnalyse ? "vide" : c.Couleur())" style="flex:@Model.Nombre(c)" title="@c.Libelle() : @Model.Nombre(c)"></span>
+            }
+        </div>
+    </div>
+}

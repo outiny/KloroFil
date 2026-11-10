@@ -56,6 +56,14 @@
     </dl>
 </div>
 
+@if (Model.Exigences.Count > 0)
+{
+    <div class="carte">
+        <h2 class="carte__titre">Avancement des évaluations</h2>
+        <partial name="_Avancement" model="@Avancement.Calculer(Model.Exigences)" />
+    </div>
+}
+
 <div class="carte defile">
     <h2 class="carte__titre">
         Exigences applicables et évaluation de conformité (@Model.Exigences.Count)

@@ -13,9 +13,13 @@ public class TableauDeBordVm
     public int Classements { get; set; }
     public int TextesAAnalyser { get; set; }
     public int TextesApplicables { get; set; }
-    public int ExigencesEvaluees { get; set; }
-    public int ExigencesConformes { get; set; }
-    public int ExigencesNonConformes { get; set; }
+    /// <summary>Avancement des évaluations sur l'ensemble des textes applicables.</summary>
+    public Avancement Evaluations { get; set; } = new();
+    /// <summary>Textes applicables ayant des exigences, du moins avancé au plus avancé.</summary>
+    public List<(TexteReglementaire Texte, Avancement Avancement)> AvancementParTexte { get; set; } = [];
+    public int ExigencesEvaluees => Evaluations.Evaluees;
+    public int ExigencesConformes => Evaluations.Conformes;
+    public int ExigencesNonConformes => Evaluations.NonConformes;
     public int PrescriptionsEnRetard { get; set; }
     public int PrescriptionsAVenir { get; set; }
     public int ActionsOuvertes { get; set; }
@@ -44,12 +48,6 @@ public class HomeController(KloroFilDbContext db) : Controller
             Classements = await db.Classements.CountAsync(),
             TextesAAnalyser = await db.Textes.CountAsync(t => t.Statut == StatutVeille.AAnalyser),
             TextesApplicables = await db.Textes.CountAsync(t => t.Statut == StatutVeille.Applicable),
-            // Taux de conformité : exigences évaluées (hors « En cours d'analyse » et « Non concerné ») ;
-            // « À surveiller » compte comme conforme, « NC en cours » comme non conforme.
-            ExigencesEvaluees = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme || e.Conformite == Conformite.ASurveiller
-                || e.Conformite == Conformite.NcEnCours || e.Conformite == Conformite.NonConforme),
-            ExigencesConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme || e.Conformite == Conformite.ASurveiller),
-            ExigencesNonConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.NonConforme || e.Conformite == Conformite.NcEnCours),
             PrescriptionsEnRetard = await db.Prescriptions.CountAsync(p => p.ProchaineEcheance < aujourdhui),
             PrescriptionsAVenir = await db.Prescriptions.CountAsync(p => p.ProchaineEcheance >= aujourdhui && p.ProchaineEcheance <= horizon),
             ActionsOuvertes = await db.Actions.CountAsync(a => ouvertes.Contains(a.Statut)),
@@ -66,6 +64,15 @@ public class HomeController(KloroFilDbContext db) : Controller
             Objectifs = await db.Objectifs.AsNoTracking().Where(o => o.Statut == StatutObjectif.EnCours)
                 .OrderBy(o => o.Echeance).Take(6).ToListAsync()
         };
+
+        // Avancement des évaluations des textes applicables. Taux de conformité : exigences évaluées hors « Non concerné » ;
+        // « À surveiller » compte comme conforme, « NC en cours » comme non conforme.
+        var parTexte = await Avancement.ParTexteAsync(db.Exigences.Where(e => e.Texte!.Statut == StatutVeille.Applicable));
+        vm.Evaluations = Avancement.Cumuler(parTexte.Values);
+        var textes = await db.Textes.AsNoTracking().Where(t => parTexte.Keys.Contains(t.Id)).ToListAsync();
+        vm.AvancementParTexte = textes.Select(t => (t, parTexte[t.Id]))
+            .OrderBy(x => x.Item2.PourcentLegislation).ThenBy(x => x.Item2.PourcentRecepisse).ThenBy(x => x.t.Titre)
+            .ToList();
 
         // La criticité est calculée en mémoire (propriété non stockée).
         vm.AspectsSignificatifs = (await db.Aspects.AsNoTracking().ToListAsync()).Count(a => a.Significatif);

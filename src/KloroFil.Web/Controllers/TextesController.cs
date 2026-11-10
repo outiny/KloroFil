@@ -24,8 +24,15 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         ViewBag.Q = q;
         ViewBag.Compteurs = await db.Textes.GroupBy(t => t.Statut).Select(g => new { g.Key, N = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.N);
-        return View(await requete.OrderBy(t => t.Statut != StatutVeille.AAnalyser)
-            .ThenByDescending(t => t.DatePublication ?? t.DateDetection).Take(500).ToListAsync());
+        var textes = await requete.OrderBy(t => t.Statut != StatutVeille.AAnalyser)
+            .ThenByDescending(t => t.DatePublication ?? t.DateDetection).Take(500).ToListAsync();
+
+        // Avancement des évaluations : par texte affiché, et pour l'ensemble des textes applicables.
+        var ids = textes.Select(t => t.Id).ToList();
+        ViewBag.Avancements = await Avancement.ParTexteAsync(db.Exigences.Where(e => ids.Contains(e.TexteReglementaireId)));
+        ViewBag.AvancementApplicables = Avancement.Cumuler((await Avancement.ParTexteAsync(
+            db.Exigences.Where(e => e.Texte!.Statut == StatutVeille.Applicable))).Values);
+        return View(textes);
     }
 
     public async Task<IActionResult> Details(int id)

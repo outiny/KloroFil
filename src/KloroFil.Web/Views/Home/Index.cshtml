@@ -22,7 +22,7 @@
     </a>
     <a class="kpi" asp-controller="Textes" asp-action="Registre">
         <div class="kpi__libelle">Taux de conformité</div>
-        <div class="kpi__valeur">@(Model.ExigencesEvaluees == 0 ? "–" : Model.TauxConformite.Pourcent())</div>
+        <div class="kpi__valeur">@(Model.ExigencesEvaluees == 0 ? "–" : Model.TauxConformite.Pourcent()) <small class="discret">sur @Model.ExigencesEvaluees / @Model.Evaluations.Total</small></div>
         <div class="jauge"><span style="width:@Model.TauxConformite.ToString("0")%; background:@Affichage.CouleurAvancement((int)Model.TauxConformite)"></span></div>
     </a>
     <a class="kpi @(Model.ExigencesNonConformes > 0 ? "kpi--alerte" : "")" asp-controller="Textes" asp-action="Registre" asp-route-conformite="@Conformite.NonConforme">
@@ -49,6 +49,37 @@
         <div class="kpi__libelle">Sites / rubriques ICPE</div>
         <div class="kpi__valeur">@Model.Sites <small class="discret">/ @Model.Classements</small></div>
     </a>
+</div>
+
+<div class="carte">
+    <h2 class="carte__titre">Avancement des évaluations – textes applicables <a asp-controller="Textes" asp-action="Index" asp-route-statut="@StatutVeille.Applicable">Tout voir</a></h2>
+    @if (Model.Evaluations.Total == 0)
+    {
+        <p class="vide">Aucune exigence à évaluer : classez des textes « Applicable » puis importez leurs articles depuis la fiche du texte.</p>
+    }
+    else
+    {
+        <partial name="_Avancement" model="Model.Evaluations" />
+        <div class="defile">
+            <table class="table">
+                <thead><tr><th>Texte applicable</th><th class="nombre">Exigences</th><th>Avancement (L = Législation, R = Récépissé)</th></tr></thead>
+                <tbody>
+                    @foreach (var (texte, avancement) in Model.AvancementParTexte.Take(10))
+                    {
+                        <tr>
+                            <td><a class="reference" asp-controller="Textes" asp-action="Details" asp-route-id="@texte.Id">@(texte.Titre.Length > 160 ? texte.Titre[..160] + "…" : texte.Titre)</a></td>
+                            <td class="nombre">@avancement.Total</td>
+                            <td style="width:260px"><partial name="_AvancementCompact" model="avancement" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.AvancementParTexte.Count > 10)
+        {
+            <p class="discret" style="padding:8px 16px">… et @(Model.AvancementParTexte.Count - 10) autre(s) texte(s), les moins avancés étant affichés en premier.</p>
+        }
+    }
 </div>
 
 <div class="colonnes">

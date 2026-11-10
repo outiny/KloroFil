@@ -198,3 +198,25 @@ a.kpi:hover { border-color: var(--vert-moyen); }
     body { background: #fff; }
     .table thead th, .bandeau { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* --- Avancement des évaluations -------------------------------------------- */
+.avancement { padding: 14px 16px 6px; }
+.grille-kpi--compacte { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.grille-kpi--compacte .kpi { padding: 10px 12px; }
+.grille-kpi--compacte .kpi__valeur { font-size: 1.5rem; }
+.barre-empilee { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: #E6EAE0; }
+.barre-empilee--fine { height: 7px; margin-top: 4px; }
+.seg { display: block; min-width: 3px; }
+.seg--vert { background: #6FA226; }
+.seg--rouge { background: #D9443A; }
+.seg--orange { background: #E8961E; }
+.seg--jaune { background: #E6C229; }
+.seg--gris { background: #A8ADA2; }
+.seg--bleu { background: #4F7FC4; }
+.seg--vide { background: #E6EAE0; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; margin: 10px 0 8px; font-size: .88rem; }
+.legende li { display: flex; align-items: center; gap: 6px; }
+.pastille-legende { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,.08); }
+.avancement-compact { min-width: 150px; }
+.ligne-jauge { display: grid; grid-template-columns: 12px 1fr 38px; align-items: center; gap: 6px; font-size: .8rem; }
+.ligne-jauge .jauge { min-width: 70px; }

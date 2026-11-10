@@ -1,0 +1,51 @@
+@* Avancement des évaluations : chiffres clés, jauges Législation / Récépissé et répartition par statut de conformité. *@
+@model Avancement
+@{
+    var ordre = Affichage.Valeurs<Conformite>().Where(c => c != Conformite.EnCoursAnalyse).Append(Conformite.EnCoursAnalyse).ToList();
+}
+@if (Model.Total == 0)
+{
+    <p class="vide">Aucune exigence à évaluer pour l'instant.</p>
+}
+else
+{
+    <div class="avancement">
+        <div class="grille-kpi grille-kpi--compacte">
+            <div class="kpi">
+                <div class="kpi__libelle">Exigences</div>
+                <div class="kpi__valeur">@Model.Total</div>
+            </div>
+            <div class="kpi @(Model.PourcentLegislation < 100 ? "kpi--attention" : "")">
+                <div class="kpi__libelle">Évaluées – Législation</div>
+                <div class="kpi__valeur">@Model.PourcentLegislation % <small class="discret">@Model.Legislation / @Model.Total</small></div>
+                <div class="jauge"><span style="width:@Model.PourcentLegislation%; background:@Affichage.CouleurAvancement(Model.PourcentLegislation)"></span></div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__libelle">Évaluées – Récépissé</div>
+                <div class="kpi__valeur">@Model.PourcentRecepisse % <small class="discret">@Model.Recepisse / @Model.Total</small></div>
+                <div class="jauge"><span style="width:@Model.PourcentRecepisse%; background:@Affichage.CouleurAvancement(Model.PourcentRecepisse)"></span></div>
+            </div>
+            <div class="kpi @(Model.NonConformes > 0 ? "kpi--alerte" : "")">
+                <div class="kpi__libelle">Taux de conformité</div>
+                <div class="kpi__valeur">@(Model.Evaluees == 0 ? "–" : Model.TauxConformite + " %") <small class="discret">sur @Model.Evaluees évaluée(s)</small></div>
+            </div>
+            <div class="kpi @(Model.NonConformes > 0 ? "kpi--alerte" : "")">
+                <div class="kpi__libelle">Non conformes / NC en cours</div>
+                <div class="kpi__valeur">@Model.Nombre(Conformite.NonConforme) <small class="discret">/ @Model.Nombre(Conformite.NcEnCours)</small></div>
+            </div>
+        </div>
+
+        <div class="barre-empilee" role="img" aria-label="Répartition des exigences par statut de conformité">
+            @foreach (var c in ordre.Where(c => Model.Nombre(c) > 0))
+            {
+                <span class="seg seg--@(c == Conformite.EnCoursAnalyse ? "vide" : c.Couleur())" style="flex:@Model.Nombre(c)" title="@c.Libelle() : @Model.Nombre(c)"></span>
+            }
+        </div>
+        <ul class="legende">
+            @foreach (var c in ordre.Where(c => Model.Nombre(c) > 0))
+            {
+                <li><span class="pastille-legende seg--@(c == Conformite.EnCoursAnalyse ? "vide" : c.Couleur())"></span>@c.Libelle() <strong>@Model.Nombre(c)</strong> <span class="discret">(@Avancement.Pourcent(Model.Nombre(c), Model.Total) %)</span></li>
+            }
+        </ul>
+    </div>
+}
