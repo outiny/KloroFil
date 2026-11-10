@@ -207,7 +207,11 @@ public class TexteReglementaire
     public List<Exigence> Exigences { get; set; } = [];
 }
 
-/// <summary>Exigence issue d'un texte applicable, évaluée périodiquement (ISO 14001 § 9.1.2).</summary>
+/// <summary>
+/// Exigence issue d'un texte applicable (un article ou un point d'annexe), évaluée en deux temps (ISO 14001 § 9.1.2) :
+/// « Législation » quand le texte devient applicable, puis « Récépissé » une fois le dossier déposé.
+/// Conformite / DateEvaluation / EvaluePar sont la synthèse de ces évaluations (voir <see cref="Synthetiser"/>).
+/// </summary>
 public class Exigence
 {
     public int Id { get; set; }
@@ -223,17 +227,71 @@ public class Exigence
     [Display(Name = "Conformité")]
     public Conformite Conformite { get; set; }
 
+    [Display(Name = "Évaluée le")]
+    public DateTime? DateEvaluation { get; set; }
+
+    [MaxLength(150), Display(Name = "Évaluée par")]
+    public string? EvaluePar { get; set; }
+
+    public List<EvaluationExigence> Evaluations { get; set; } = [];
+
+    public EvaluationExigence? Evaluation(PhaseEvaluation phase) => Evaluations.FirstOrDefault(e => e.Phase == phase);
+
+    /// <summary>Synthèse : l'évaluation « Récépissé » dès qu'elle est faite, sinon l'évaluation « Législation ».</summary>
+    public void Synthetiser()
+    {
+        var retenue = Evaluation(PhaseEvaluation.Recepisse) is { Conformite: not Conformite.EnCoursAnalyse } r ? r : Evaluation(PhaseEvaluation.Legislation);
+        Conformite = retenue?.Conformite ?? Conformite.EnCoursAnalyse;
+        DateEvaluation = retenue?.DateEvaluation;
+        EvaluePar = retenue?.EvaluePar;
+    }
+}
+
+/// <summary>Écran d'évaluation : l'exigence, l'évaluation de la phase affichée et, pour mémoire, toutes ses évaluations.</summary>
+public class ExigenceVm
+{
+    public Exigence Exigence { get; set; } = new();
+    public EvaluationExigence Evaluation { get; set; } = new();
+    public PhaseEvaluation Phase { get; set; }
+    public string? TitreTexte { get; set; }
+    public List<EvaluationExigence> Evaluations { get; set; } = [];
+}
+
+public enum PhaseEvaluation
+{
+    [Display(Name = "Législation")] Legislation = 0,
+    [Display(Name = "Récépissé")] Recepisse = 1
+}
+
+/// <summary>Évaluation d'une exigence pour une phase : à l'entrée en application du texte, puis après le dépôt du dossier (récépissé).</summary>
+public class EvaluationExigence
+{
+    public int Id { get; set; }
+    public int ExigenceId { get; set; }
+    public Exigence? Exigence { get; set; }
+
+    public PhaseEvaluation Phase { get; set; }
+
+    [Display(Name = "Conformité")]
+    public Conformite Conformite { get; set; }
+
     [DataType(DataType.Date), Display(Name = "Évaluée le")]
     public DateTime? DateEvaluation { get; set; }
 
     [MaxLength(150), Display(Name = "Évaluée par")]
     public string? EvaluePar { get; set; }
 
+    [Display(Name = "Critères d'évaluation")]
+    public string? CriteresEvaluation { get; set; }
+
+    [Display(Name = "Moyens de surveillance")]
+    public string? MoyensSurveillance { get; set; }
+
+    [Display(Name = "Actions correctives")]
+    public string? ActionsCorrectives { get; set; }
+
     [Display(Name = "Preuves / commentaire")]
     public string? Preuves { get; set; }
-
-    [DataType(DataType.Date), Display(Name = "Prochaine évaluation")]
-    public DateTime? ProchaineEvaluation { get; set; }
 }
 
 // ---------------------------------------------------------------------------------------------

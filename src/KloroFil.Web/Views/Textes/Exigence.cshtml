@@ -1,37 +1,64 @@
-@model Exigence
+@model ExigenceVm
 @{
-    var nouveau = Model.Id == 0;
-    ViewData["Title"] = nouveau ? "Nouvelle exigence" : "Évaluation de conformité";
+    var nouvelle = Model.Exigence.Id == 0;
+    ViewData["Title"] = nouvelle ? "Nouvelle exigence" : $"{Model.Phase.Libelle()} – {Model.Exigence.Article}";
     var gerer = User.PeutGerer();
+    var texteId = Model.Exigence.TexteReglementaireId;
 }
-<form method="post" asp-action="Exigence" asp-route-id="@(nouveau ? null : Model.Id)" class="carte">
-    <h1 class="carte__titre">@(nouveau ? "Nouvelle exigence" : "Évaluation de conformité")</h1>
-    <input type="hidden" asp-for="TexteReglementaireId" />
+<div class="entete-page">
+    <div style="max-width:900px">
+        <h1 class="titre">@(nouvelle ? "Nouvelle exigence" : "Évaluation de conformité" + (Model.Exigence.Article is null ? "" : " – " + Model.Exigence.Article))</h1>
+        <p class="sous-titre">@Model.TitreTexte</p>
+    </div>
+    <a class="btn btn--secondaire" asp-action="Details" asp-route-id="@texteId">Retour au texte</a>
+</div>
+
+@if (!nouvelle)
+{
+    @* Une fenêtre par phase : « Législation » quand le texte devient applicable, « Récépissé » une fois le dossier déposé. *@
+    <div class="onglets">
+        @foreach (var p in Affichage.Valeurs<PhaseEvaluation>())
+        {
+            var ev = Model.Evaluations.FirstOrDefault(v => v.Phase == p);
+            <a class="@(p == Model.Phase ? "is-active" : "")" asp-action="Exigence" asp-route-id="@Model.Exigence.Id" asp-route-texteId="@texteId" asp-route-phase="@p">
+                @p.Libelle() @(ev is null ? "(à faire)" : "– " + ev.Conformite.Libelle())
+            </a>
+        }
+    </div>
+}
+
+<form method="post" asp-action="Exigence" asp-route-id="@(nouvelle ? null : Model.Exigence.Id)" class="carte">
+    <h2 class="carte__titre">@Model.Phase.Libelle()</h2>
+    <input type="hidden" asp-for="Exigence.TexteReglementaireId" />
+    <input type="hidden" asp-for="Phase" />
     <div class="formulaire">
-        <p class="champ--large discret">@Model.Texte?.Titre</p>
         <div asp-validation-summary="ModelOnly" class="champ--large"></div>
         @if (gerer)
         {
-            <div class="champ"><label asp-for="Article"></label><input asp-for="Article" /></div>
-            <div class="champ champ--large"><label asp-for="Description"></label><textarea asp-for="Description" rows="3"></textarea><span asp-validation-for="Description"></span></div>
+            <div class="champ"><label asp-for="Exigence.Article"></label><input asp-for="Exigence.Article" /></div>
+            <div class="champ champ--large"><label asp-for="Exigence.Description"></label><textarea asp-for="Exigence.Description" rows="5"></textarea><span asp-validation-for="Exigence.Description"></span></div>
         }
         else
         {
-            <input type="hidden" asp-for="Article" />
-            <input type="hidden" asp-for="Description" />
-            <div class="champ champ--large"><label>Exigence @Model.Article</label><p class="texte-long">@Model.Description</p></div>
+            <div class="champ champ--large"><label>Exigence @Model.Exigence.Article</label><p class="texte-long" style="margin:0">@Model.Exigence.Description</p></div>
         }
 
-        <p class="separateur">Évaluation</p>
-        <div class="champ"><label asp-for="Conformite"></label><select asp-for="Conformite" asp-items="Affichage.Choix(Model.Conformite)"></select></div>
-        <div class="champ"><label asp-for="DateEvaluation"></label><input asp-for="DateEvaluation" type="date" /></div>
-        <div class="champ"><label asp-for="EvaluePar"></label><input asp-for="EvaluePar" list="responsables" /></div>
-        <div class="champ"><label asp-for="ProchaineEvaluation"></label><input asp-for="ProchaineEvaluation" type="date" /><span class="aide">Par défaut : un an après l'évaluation.</span></div>
-        <div class="champ champ--large"><label asp-for="Preuves"></label><textarea asp-for="Preuves" placeholder="Rapport de contrôle, enregistrement, constat…"></textarea></div>
+        <p class="separateur">Évaluation – @Model.Phase.Libelle()</p>
+        <div class="champ"><label asp-for="Evaluation.Conformite"></label><select asp-for="Evaluation.Conformite" asp-items="Affichage.Choix(Model.Evaluation.Conformite)"></select></div>
+        <div class="champ"><label asp-for="Evaluation.DateEvaluation"></label><input asp-for="Evaluation.DateEvaluation" type="date" /></div>
+        <div class="champ"><label asp-for="Evaluation.EvaluePar"></label><input asp-for="Evaluation.EvaluePar" list="responsables" /></div>
+        <div class="champ champ--large"><label asp-for="Evaluation.CriteresEvaluation"></label><textarea asp-for="Evaluation.CriteresEvaluation" rows="3" placeholder="Ce qui permet de dire que l'exigence est respectée : valeur limite, document attendu, fréquence…"></textarea></div>
+        <div class="champ champ--large"><label asp-for="Evaluation.MoyensSurveillance"></label><textarea asp-for="Evaluation.MoyensSurveillance" rows="3" placeholder="Contrôle périodique, mesure, registre, inspection interne, indicateur…"></textarea></div>
+        <div class="champ champ--large"><label asp-for="Evaluation.ActionsCorrectives"></label><textarea asp-for="Evaluation.ActionsCorrectives" rows="3" placeholder="Actions décidées en cas d'écart (à reporter aussi dans le plan d'actions avec « + Action »)."></textarea></div>
+        <div class="champ champ--large"><label asp-for="Evaluation.Preuves"></label><textarea asp-for="Evaluation.Preuves" rows="3" placeholder="Rapport de contrôle, enregistrement, constat, n° et date du récépissé…"></textarea></div>
 
         <div class="actions champ--large">
             <button class="btn btn--primaire">Enregistrer</button>
-            <a class="btn btn--secondaire" asp-action="Details" asp-route-id="@Model.TexteReglementaireId">Annuler</a>
+            <a class="btn btn--secondaire" asp-action="Details" asp-route-id="@texteId">Annuler</a>
+            @if (!nouvelle && User.PeutSaisir() && Model.Evaluation.Conformite is Conformite.NonConforme or Conformite.NcEnCours)
+            {
+                <a class="btn btn--secondaire" asp-controller="Actions" asp-action="Edition" asp-route-exigenceId="@Model.Exigence.Id">+ Action dans le plan d'actions</a>
+            }
         </div>
     </div>
 </form>

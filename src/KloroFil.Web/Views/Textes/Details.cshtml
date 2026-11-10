@@ -80,12 +80,11 @@
     else
     {
         <table class="table">
-            <thead><tr><th>Article</th><th>Exigence</th><th>Conformité</th><th>Évaluée</th><th>Prochaine</th><th></th></tr></thead>
+            <thead><tr><th>Article</th><th>Exigence</th><th>Législation</th><th>Récépissé</th><th></th></tr></thead>
             <tbody>
                 @foreach (var e in Model.Exigences)
                 {
-                    var echue = e.ProchaineEvaluation is { } pe && pe < DateTime.Today;
-                    <tr class="@(echue ? "retard" : "")">
+                    <tr>
                         <td style="white-space:nowrap">@e.Article.Texte()</td>
                         <td>
                             @{
@@ -105,16 +104,30 @@
                                     <div class="texte-long">@corps</div>
                                 </details>
                             }
-                            @if (!string.IsNullOrWhiteSpace(e.Preuves)) { <div class="discret texte-long">@e.Preuves</div> }
                         </td>
-                        <td><span class="badge badge--@e.Conformite.Couleur()">@e.Conformite.Libelle()</span></td>
-                        <td>@e.DateEvaluation.Date() <div class="discret">@e.EvaluePar</div></td>
-                        <td class="@(echue ? "retard-texte" : "")">@e.ProchaineEvaluation.Date()</td>
+                        @foreach (var phase in Affichage.Valeurs<PhaseEvaluation>())
+                        {
+                            var ev = e.Evaluation(phase);
+                            <td style="min-width:150px">
+                                @if (ev is null)
+                                {
+                                    <span class="discret">À faire</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--@ev.Conformite.Couleur()">@ev.Conformite.Libelle()</span>
+                                    <div class="discret">@ev.DateEvaluation.Date() @ev.EvaluePar</div>
+                                }
+                                @if (saisir)
+                                {
+                                    <div><a class="discret" asp-action="Exigence" asp-route-id="@e.Id" asp-route-texteId="@Model.Id" asp-route-phase="@phase">@(ev is null ? "Évaluer" : "Modifier")</a></div>
+                                }
+                            </td>
+                        }
                         <td>
                             <div class="actions">
                                 @if (saisir)
                                 {
-                                    <a class="btn btn--secondaire btn--petit" asp-action="Exigence" asp-route-id="@e.Id" asp-route-texteId="@Model.Id">Évaluer</a>
                                     @if (e.Conformite is Conformite.NonConforme or Conformite.NcEnCours)
                                     {
                                         <a class="btn btn--secondaire btn--petit" asp-controller="Actions" asp-action="Edition" asp-route-exigenceId="@e.Id">+ Action</a>

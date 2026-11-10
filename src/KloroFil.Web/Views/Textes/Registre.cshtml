@@ -27,18 +27,31 @@
     else
     {
         <table class="table">
-            <thead><tr><th>Texte</th><th>Article</th><th>Exigence</th><th>Conformité</th><th>Évaluée</th><th>Prochaine</th></tr></thead>
+            <thead><tr><th>Texte</th><th>Article</th><th>Exigence</th><th>Législation</th><th>Récépissé</th><th>Moyens de surveillance</th></tr></thead>
             <tbody>
                 @foreach (var e in Model)
                 {
-                    var echue = e.ProchaineEvaluation is { } pe && pe < DateTime.Today;
-                    <tr class="@(echue ? "retard" : "")">
+                    var derniere = e.Evaluation(PhaseEvaluation.Recepisse) ?? e.Evaluation(PhaseEvaluation.Legislation);
+                    <tr>
                         <td><a class="reference" asp-action="Details" asp-route-id="@e.TexteReglementaireId">@e.Texte?.Titre</a></td>
-                        <td>@e.Article.Texte()</td>
-                        <td>@e.Description</td>
-                        <td><span class="badge badge--@e.Conformite.Couleur()">@e.Conformite.Libelle()</span></td>
-                        <td>@e.DateEvaluation.Date()</td>
-                        <td class="@(echue ? "retard-texte" : "")">@e.ProchaineEvaluation.Date()</td>
+                        <td style="white-space:nowrap">@e.Article.Texte()</td>
+                        <td class="texte-long">@(e.Description.Length > 400 ? e.Description[..400] + "…" : e.Description)</td>
+                        @foreach (var phase in Affichage.Valeurs<PhaseEvaluation>())
+                        {
+                            var ev = e.Evaluation(phase);
+                            <td>
+                                @if (ev is null)
+                                {
+                                    <span class="discret">À faire</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge--@ev.Conformite.Couleur()">@ev.Conformite.Libelle()</span>
+                                    <div class="discret">@ev.DateEvaluation.Date()</div>
+                                }
+                            </td>
+                        }
+                        <td class="texte-long">@derniere?.MoyensSurveillance.Texte()</td>
                     </tr>
                 }
             </tbody>

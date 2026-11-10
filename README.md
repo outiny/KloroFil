@@ -12,7 +12,7 @@ ASP.NET Core MVC (.NET 10) · Entity Framework Core · SQL Server · ASP.NET Cor
 | **Tableau de bord** | Textes à analyser, taux de conformité, contrôles ICPE en retard, échéances à 60 jours, actions ouvertes / en retard, aspects significatifs, objectifs |
 | **Sites ICPE** | Situation administrative (régime A / E / DC / D, Seveso, IED, code AIOT, arrêté), tableau des rubriques de la nomenclature |
 | **Prescriptions** | Obligations des arrêtés préfectoraux / ministériels avec périodicité et échéancier ; bouton « Réalisé » qui reporte l'échéance |
-| **Veille réglementaire** | Registre des textes, qualification (applicable, pour information, non applicable), analyse d'impact, exigences et **registre de conformité** (§ 9.1.2) |
+| **Veille réglementaire** | Registre des textes, qualification (applicable, pour information, non applicable), analyse d'impact, exigences évaluées en deux phases (**Législation** puis **Récépissé** : conformité, critères d'évaluation, moyens de surveillance, actions correctives, preuves) et **registre de conformité** (§ 9.1.2) |
 | **Veille automatisée** | Lecture planifiée de flux **RSS / Atom** filtrés par mots-clés ; les nouveautés arrivent « À analyser » et les rubriques ICPE du parc citées sont repérées |
 | **Analyse environnementale** | Aspects / impacts, cotation gravité × fréquence × maîtrise, aspects significatifs (§ 6.1.2) |
 | **Objectifs** | Objectifs, indicateurs, cibles et avancement (§ 6.2) |

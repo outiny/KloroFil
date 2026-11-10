@@ -14,6 +14,7 @@ public class KloroFilDbContext(DbContextOptions<KloroFilDbContext> options)
     public DbSet<SourceVeille> SourcesVeille => Set<SourceVeille>();
     public DbSet<TexteReglementaire> Textes => Set<TexteReglementaire>();
     public DbSet<Exigence> Exigences => Set<Exigence>();
+    public DbSet<EvaluationExigence> Evaluations => Set<EvaluationExigence>();
     public DbSet<AspectEnvironnemental> Aspects => Set<AspectEnvironnemental>();
     public DbSet<ObjectifEnvironnemental> Objectifs => Set<ObjectifEnvironnemental>();
     public DbSet<Audit> Audits => Set<Audit>();
@@ -48,6 +49,13 @@ public class KloroFilDbContext(DbContextOptions<KloroFilDbContext> options)
 
         b.Entity<Exigence>()
             .HasOne(x => x.Texte).WithMany(t => t.Exigences).HasForeignKey(x => x.TexteReglementaireId).OnDelete(DeleteBehavior.Cascade);
+
+        // Une évaluation par phase (Législation, Récépissé) et par exigence.
+        b.Entity<EvaluationExigence>(e =>
+        {
+            e.HasOne(v => v.Exigence).WithMany(x => x.Evaluations).HasForeignKey(v => v.ExigenceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(v => new { v.ExigenceId, v.Phase }).IsUnique();
+        });
 
         b.Entity<AspectEnvironnemental>()
             .HasOne(a => a.Site).WithMany().HasForeignKey(a => a.SiteId).OnDelete(DeleteBehavior.SetNull);

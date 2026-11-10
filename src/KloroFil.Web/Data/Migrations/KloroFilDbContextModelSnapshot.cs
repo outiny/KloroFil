@@ -243,6 +243,50 @@ namespace KloroFil.Web.Data.Migrations
                     b.ToTable("Classements");
                 });
 
+            modelBuilder.Entity("KloroFil.Web.Models.EvaluationExigence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionsCorrectives")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Conformite")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CriteresEvaluation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateEvaluation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EvaluePar")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("ExigenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MoyensSurveillance")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Phase")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Preuves")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExigenceId", "Phase")
+                        .IsUnique();
+
+                    b.ToTable("Evaluations");
+                });
+
             modelBuilder.Entity("KloroFil.Web.Models.Exigence", b =>
                 {
                     b.Property<int>("Id")
@@ -268,12 +312,6 @@ namespace KloroFil.Web.Data.Migrations
                     b.Property<string>("EvaluePar")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Preuves")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ProchaineEvaluation")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("TexteReglementaireId")
                         .HasColumnType("int");
@@ -837,6 +875,17 @@ namespace KloroFil.Web.Data.Migrations
                     b.Navigation("Site");
                 });
 
+            modelBuilder.Entity("KloroFil.Web.Models.EvaluationExigence", b =>
+                {
+                    b.HasOne("KloroFil.Web.Models.Exigence", "Exigence")
+                        .WithMany("Evaluations")
+                        .HasForeignKey("ExigenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exigence");
+                });
+
             modelBuilder.Entity("KloroFil.Web.Models.Exigence", b =>
                 {
                     b.HasOne("KloroFil.Web.Models.TexteReglementaire", "Texte")
@@ -918,6 +967,11 @@ namespace KloroFil.Web.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("KloroFil.Web.Models.Exigence", b =>
+                {
+                    b.Navigation("Evaluations");
                 });
 
             modelBuilder.Entity("KloroFil.Web.Models.Site", b =>

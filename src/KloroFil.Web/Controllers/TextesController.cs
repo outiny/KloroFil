@@ -31,7 +31,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
     public async Task<IActionResult> Details(int id)
     {
         var t = await db.Textes.AsNoTracking().Include(x => x.SourceVeille)
-            .Include(x => x.Exigences.OrderBy(e => e.Id)).FirstOrDefaultAsync(x => x.Id == id);
+            .Include(x => x.Exigences.OrderBy(e => e.Id)).ThenInclude(e => e.Evaluations).FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
         ViewBag.Actions = await db.Actions.AsNoTracking()
             .Where(a => a.TexteReglementaireId == id || a.Exigence!.TexteReglementaireId == id)
@@ -183,7 +183,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
     [HttpPost, Authorize(Roles = RolesKloroFil.Gestion)]
     public async Task<IActionResult> ImporterArticles(int id, [FromServices] LegifranceClient legifrance, CancellationToken ct)
     {
-        var texte = await db.Textes.Include(t => t.Exigences).FirstOrDefaultAsync(t => t.Id == id, ct);
+        var texte = await db.Textes.Include(t => t.Exigences).ThenInclude(x => x.Evaluations).FirstOrDefaultAsync(t => t.Id == id, ct);
         if (texte is null) return NotFound();
         if (LegifranceClient.IdentifiantTexte(texte.Url) is not { } idTexte)
         {
@@ -218,12 +218,14 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             {
                 if (Normaliser(e.Description) == Normaliser(p.Description)) continue;
                 e.Description = p.Description;
-                if (e.Conformite is not (Conformite.EnCoursAnalyse or Conformite.NonConcerne))
+                // Rédaction modifiée : chaque évaluation déjà faite repasse « En cours d'analyse », avec une trace de l'ancienne.
+                foreach (var ev in e.Evaluations.Where(v => v.Conformite is not (Conformite.EnCoursAnalyse or Conformite.NonConcerne)))
                 {
-                    e.Preuves = $"[{DateTime.Today.Date()}] Rédaction modifiée sur Légifrance : repassée en cours d'analyse. Évaluation précédente : {e.Conformite.Libelle()}."
-                        + (string.IsNullOrWhiteSpace(e.Preuves) ? "" : "\n" + e.Preuves);
-                    e.Conformite = Conformite.EnCoursAnalyse;
+                    ev.Preuves = $"[{DateTime.Today.Date()}] Rédaction modifiée sur Légifrance : repassée en cours d'analyse. Évaluation précédente : {ev.Conformite.Libelle()}."
+                        + (string.IsNullOrWhiteSpace(ev.Preuves) ? "" : "\n" + ev.Preuves);
+                    ev.Conformite = Conformite.EnCoursAnalyse;
                 }
+                e.Synthetiser();
                 modifies++;
             }
             else
@@ -250,50 +252,85 @@ public partial class TextesController(KloroFilDbContext db) : Controller
 
     // ---- Exigences ---------------------------------------------------------------------------
 
+    /// <summary>Évaluation d'une exigence, phase « Législation » (texte applicable) ou « Récépissé » (dossier déposé).</summary>
     [Authorize(Roles = RolesKloroFil.Saisie)]
-    public async Task<IActionResult> Exigence(int? id, int texteId)
+    public async Task<IActionResult> Exigence(int? id, int texteId, PhaseEvaluation phase = PhaseEvaluation.Legislation)
     {
-        var e = id is null ? new Exigence { TexteReglementaireId = texteId } : await db.Exigences.FindAsync(id);
-        if (e is null) return NotFound();
-        e.Texte = await db.Textes.FindAsync(e.TexteReglementaireId);
-        if (e.Texte is null) return NotFound();
         if (id is null && !User.PeutGerer()) return Forbid();
-        return View(e);
+        var e = id is null
+            ? new Exigence { TexteReglementaireId = texteId }
+            : await db.Exigences.Include(x => x.Evaluations).FirstOrDefaultAsync(x => x.Id == id);
+        if (e is null) return NotFound();
+        var texte = await db.Textes.FindAsync(e.TexteReglementaireId);
+        if (texte is null) return NotFound();
+
+        var evaluation = e.Evaluation(phase) ?? new EvaluationExigence { Phase = phase };
+        // Première évaluation « Récépissé » : on repart des critères et moyens de surveillance définis en « Législation ».
+        if (evaluation.Id == 0 && phase == PhaseEvaluation.Recepisse && e.Evaluation(PhaseEvaluation.Legislation) is { } leg)
+        {
+            evaluation.CriteresEvaluation = leg.CriteresEvaluation;
+            evaluation.MoyensSurveillance = leg.MoyensSurveillance;
+        }
+        return View(new ExigenceVm { Exigence = e, Evaluation = evaluation, Phase = phase, TitreTexte = texte.Titre, Evaluations = e.Evaluations });
     }
 
     [HttpPost, Authorize(Roles = RolesKloroFil.Saisie)]
-    public async Task<IActionResult> Exigence(int? id, Exigence e)
+    public async Task<IActionResult> Exigence(int? id, ExigenceVm vm)
     {
-        if (!await db.Textes.AnyAsync(t => t.Id == e.TexteReglementaireId)) return NotFound();
+        var texte = await db.Textes.FindAsync(vm.Exigence.TexteReglementaireId);
+        if (texte is null) return NotFound();
         if (id is null && !User.PeutGerer()) return Forbid();
+
+        var exigence = id is null
+            ? new Exigence { TexteReglementaireId = texte.Id }
+            : await db.Exigences.Include(x => x.Evaluations).FirstOrDefaultAsync(x => x.Id == id && x.TexteReglementaireId == texte.Id);
+        if (exigence is null) return NotFound();
+
+        // Seuls les gestionnaires modifient le libellé de l'exigence ; un contributeur n'évalue que.
+        if (!User.PeutGerer())
+        {
+            vm.Exigence.Article = exigence.Article;
+            vm.Exigence.Description = exigence.Description;
+            ModelState.Remove("Exigence.Description");
+        }
         if (!ModelState.IsValid)
         {
-            e.Texte = await db.Textes.FindAsync(e.TexteReglementaireId);
-            return View(e);
+            vm.TitreTexte = texte.Titre;
+            vm.Evaluations = exigence.Evaluations;
+            return View(vm);
         }
 
-        if (e.Conformite != Conformite.EnCoursAnalyse)
-        {
-            e.DateEvaluation ??= DateTime.Today;
-            e.EvaluePar = string.IsNullOrWhiteSpace(e.EvaluePar) ? User.Identity?.Name : e.EvaluePar;
-            e.ProchaineEvaluation ??= e.DateEvaluation.Value.AddYears(1);
-        }
+        exigence.Article = vm.Exigence.Article;
+        exigence.Description = vm.Exigence.Description;
+        if (id is null) db.Exigences.Add(exigence);
 
-        if (id is null) db.Exigences.Add(e);
-        else
+        var evaluation = exigence.Evaluation(vm.Phase);
+        if (evaluation is null)
         {
-            var existant = await db.Exigences.FindAsync(id);
-            if (existant is null) return NotFound();
-            e.Id = existant.Id;
-            db.Entry(existant).CurrentValues.SetValues(e);
+            evaluation = new EvaluationExigence { Phase = vm.Phase };
+            exigence.Evaluations.Add(evaluation);
         }
+        var saisie = vm.Evaluation;
+        evaluation.Conformite = saisie.Conformite;
+        evaluation.DateEvaluation = saisie.DateEvaluation;
+        evaluation.EvaluePar = saisie.EvaluePar;
+        evaluation.CriteresEvaluation = saisie.CriteresEvaluation;
+        evaluation.MoyensSurveillance = saisie.MoyensSurveillance;
+        evaluation.ActionsCorrectives = saisie.ActionsCorrectives;
+        evaluation.Preuves = saisie.Preuves;
+        if (evaluation.Conformite != Conformite.EnCoursAnalyse)
+        {
+            evaluation.DateEvaluation ??= DateTime.Today;
+            if (string.IsNullOrWhiteSpace(evaluation.EvaluePar)) evaluation.EvaluePar = User.Identity?.Name;
+        }
+        exigence.Synthetiser();
         await db.SaveChangesAsync();
 
-        TempData["Succes"] = "Exigence enregistrée.";
-        if (e.Conformite is Conformite.NonConforme or Conformite.NcEnCours &&
-            !await db.Actions.AnyAsync(a => a.ExigenceId == e.Id && (a.Statut == StatutAction.AFaire || a.Statut == StatutAction.EnCours)))
-            TempData["Info"] = "Exigence non conforme sans action ouverte : pensez à créer une action de mise en conformité.";
-        return RedirectToAction(nameof(Details), new { id = e.TexteReglementaireId });
+        TempData["Succes"] = $"Évaluation « {vm.Phase.Libelle()} » enregistrée.";
+        if (evaluation.Conformite is Conformite.NonConforme or Conformite.NcEnCours &&
+            !await db.Actions.AnyAsync(a => a.ExigenceId == exigence.Id && (a.Statut == StatutAction.AFaire || a.Statut == StatutAction.EnCours)))
+            TempData["Info"] = "Exigence non conforme sans action ouverte dans le plan d'actions : pensez à en créer une (bouton « + Action »).";
+        return RedirectToAction(nameof(Details), new { id = texte.Id });
     }
 
     [HttpPost, Authorize(Roles = RolesKloroFil.Gestion)]
@@ -311,11 +348,11 @@ public partial class TextesController(KloroFilDbContext db) : Controller
     /// <summary>Registre de conformité : toutes les exigences des textes applicables.</summary>
     public async Task<IActionResult> Registre(Conformite? conformite)
     {
-        var requete = db.Exigences.AsNoTracking().Include(e => e.Texte).Where(e => e.Texte!.Statut == StatutVeille.Applicable);
+        var requete = db.Exigences.AsNoTracking().Include(e => e.Texte).Include(e => e.Evaluations).Where(e => e.Texte!.Statut == StatutVeille.Applicable);
         if (conformite is not null) requete = requete.Where(e => e.Conformite == conformite);
         ViewBag.Conformite = conformite;
         return View(await requete.OrderBy(e => e.Conformite == Conformite.Conforme)
-            .ThenBy(e => e.ProchaineEvaluation).ThenBy(e => e.Texte!.Titre).ToListAsync());
+            .ThenBy(e => e.Texte!.Titre).ThenBy(e => e.Id).ToListAsync());
     }
 
     private void MarquerAnalyse(TexteReglementaire t, StatutVeille? avant)
