@@ -178,7 +178,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
 
     /// <summary>
     /// Importe la version en vigueur du texte (articles et points numérotés des annexes) comme exigences à évaluer.
-    /// Réimporter met à jour les points dont la rédaction a changé et les repasse « À évaluer » ; rien n'est supprimé.
+    /// Réimporter met à jour les points dont la rédaction a changé et les repasse « En cours d'analyse » ; rien n'est supprimé.
     /// </summary>
     [HttpPost, Authorize(Roles = RolesKloroFil.Gestion)]
     public async Task<IActionResult> ImporterArticles(int id, [FromServices] LegifranceClient legifrance, CancellationToken ct)
@@ -218,11 +218,11 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             {
                 if (Normaliser(e.Description) == Normaliser(p.Description)) continue;
                 e.Description = p.Description;
-                if (e.Conformite is not (Conformite.AEvaluer or Conformite.SansObjet))
+                if (e.Conformite is not (Conformite.EnCoursAnalyse or Conformite.NonConcerne))
                 {
-                    e.Preuves = $"[{DateTime.Today.Date()}] Rédaction modifiée sur Légifrance : à réévaluer. Évaluation précédente : {e.Conformite.Libelle()}."
+                    e.Preuves = $"[{DateTime.Today.Date()}] Rédaction modifiée sur Légifrance : repassée en cours d'analyse. Évaluation précédente : {e.Conformite.Libelle()}."
                         + (string.IsNullOrWhiteSpace(e.Preuves) ? "" : "\n" + e.Preuves);
-                    e.Conformite = Conformite.AEvaluer;
+                    e.Conformite = Conformite.EnCoursAnalyse;
                 }
                 modifies++;
             }
@@ -236,7 +236,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
 
         TempData["Succes"] = ajoutes + modifies == 0
             ? $"Les {points.Count} points du texte en vigueur sont déjà à jour."
-            : $"{points.Count} point(s) lu(s) sur Légifrance : {ajoutes} exigence(s) ajoutée(s), {modifies} mise(s) à jour (repassées « À évaluer »).";
+            : $"{points.Count} point(s) lu(s) sur Légifrance : {ajoutes} exigence(s) ajoutée(s), {modifies} mise(s) à jour (repassées « En cours d'analyse »).";
 
         // Certaines annexes ne sont pas reproduites au Journal officiel (publiées au Bulletin officiel du ministère).
         var nonReproduites = points.Where(p => AnnexeNonReproduite().IsMatch(p.Contenu)).Select(p => p.Numero).ToList();
@@ -272,7 +272,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
             return View(e);
         }
 
-        if (e.Conformite != Conformite.AEvaluer)
+        if (e.Conformite != Conformite.EnCoursAnalyse)
         {
             e.DateEvaluation ??= DateTime.Today;
             e.EvaluePar = string.IsNullOrWhiteSpace(e.EvaluePar) ? User.Identity?.Name : e.EvaluePar;
@@ -290,7 +290,7 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         await db.SaveChangesAsync();
 
         TempData["Succes"] = "Exigence enregistrée.";
-        if (e.Conformite is Conformite.NonConforme or Conformite.Partielle &&
+        if (e.Conformite is Conformite.NonConforme or Conformite.NcEnCours &&
             !await db.Actions.AnyAsync(a => a.ExigenceId == e.Id && (a.Statut == StatutAction.AFaire || a.Statut == StatutAction.EnCours)))
             TempData["Info"] = "Exigence non conforme sans action ouverte : pensez à créer une action de mise en conformité.";
         return RedirectToAction(nameof(Details), new { id = e.TexteReglementaireId });

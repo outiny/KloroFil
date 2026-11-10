@@ -44,9 +44,12 @@ public class HomeController(KloroFilDbContext db) : Controller
             Classements = await db.Classements.CountAsync(),
             TextesAAnalyser = await db.Textes.CountAsync(t => t.Statut == StatutVeille.AAnalyser),
             TextesApplicables = await db.Textes.CountAsync(t => t.Statut == StatutVeille.Applicable),
-            ExigencesEvaluees = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme || e.Conformite == Conformite.Partielle || e.Conformite == Conformite.NonConforme),
-            ExigencesConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme),
-            ExigencesNonConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.NonConforme),
+            // Taux de conformité : exigences évaluées (hors « En cours d'analyse » et « Non concerné ») ;
+            // « À surveiller » compte comme conforme, « NC en cours » comme non conforme.
+            ExigencesEvaluees = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme || e.Conformite == Conformite.ASurveiller
+                || e.Conformite == Conformite.NcEnCours || e.Conformite == Conformite.NonConforme),
+            ExigencesConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.Conforme || e.Conformite == Conformite.ASurveiller),
+            ExigencesNonConformes = await db.Exigences.CountAsync(e => e.Conformite == Conformite.NonConforme || e.Conformite == Conformite.NcEnCours),
             PrescriptionsEnRetard = await db.Prescriptions.CountAsync(p => p.ProchaineEcheance < aujourdhui),
             PrescriptionsAVenir = await db.Prescriptions.CountAsync(p => p.ProchaineEcheance >= aujourdhui && p.ProchaineEcheance <= horizon),
             ActionsOuvertes = await db.Actions.CountAsync(a => ouvertes.Contains(a.Statut)),

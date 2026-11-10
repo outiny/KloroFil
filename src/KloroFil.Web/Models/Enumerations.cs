@@ -54,13 +54,18 @@ public enum StatutVeille
     [Display(Name = "Non applicable")] NonApplicable = 3
 }
 
+/// <summary>
+/// Statut de conformité d'une exigence ou d'une prescription. Les valeurs numériques sont celles stockées en base
+/// (0 = ancien « À évaluer », 2 = ancien « Partiellement conforme », 4 = ancien « Sans objet ») ; Order fixe l'ordre des listes.
+/// </summary>
 public enum Conformite
 {
-    [Display(Name = "À évaluer")] AEvaluer = 0,
-    [Display(Name = "Conforme")] Conforme = 1,
-    [Display(Name = "Partiellement conforme")] Partielle = 2,
-    [Display(Name = "Non conforme")] NonConforme = 3,
-    [Display(Name = "Sans objet")] SansObjet = 4
+    [Display(Name = "En cours d'analyse", Order = 3)] EnCoursAnalyse = 0,
+    [Display(Name = "Conforme", Order = 1)] Conforme = 1,
+    [Display(Name = "En application mais NC en cours", Order = 5)] NcEnCours = 2,
+    [Display(Name = "Non conforme", Order = 2)] NonConforme = 3,
+    [Display(Name = "Non concerné", Order = 6)] NonConcerne = 4,
+    [Display(Name = "À surveiller", Order = 4)] ASurveiller = 5
 }
 
 public enum Periodicite

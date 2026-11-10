@@ -20,7 +20,7 @@ public class PrescriptionsController(KloroFilDbContext db) : Controller
         {
             "retard" => requete.Where(p => p.ProchaineEcheance < aujourdhui),
             "avenir" => requete.Where(p => p.ProchaineEcheance >= aujourdhui && p.ProchaineEcheance <= aujourdhui.AddDays(60)),
-            "nc" => requete.Where(p => p.Conformite == Conformite.NonConforme || p.Conformite == Conformite.Partielle),
+            "nc" => requete.Where(p => p.Conformite == Conformite.NonConforme || p.Conformite == Conformite.NcEnCours),
             _ => requete
         };
 
@@ -78,7 +78,7 @@ public class PrescriptionsController(KloroFilDbContext db) : Controller
         if (p is null) return NotFound();
         p.DerniereRealisation = DateTime.Today;
         p.ProchaineEcheance = Affichage.Suivante(p.DerniereRealisation, p.Periodicite);
-        if (p.Conformite == Conformite.AEvaluer) p.Conformite = Conformite.Conforme;
+        if (p.Conformite == Conformite.EnCoursAnalyse) p.Conformite = Conformite.Conforme;
         await db.SaveChangesAsync();
         TempData["Succes"] = p.ProchaineEcheance is null
             ? $"« {p.Intitule} » réalisée."

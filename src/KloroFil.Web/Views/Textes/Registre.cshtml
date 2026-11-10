@@ -13,7 +13,7 @@
 
 <div class="onglets">
     <a class="@(choix is null ? "is-active" : "")" asp-route-conformite="">Toutes</a>
-    @foreach (var c in Enum.GetValues<Conformite>())
+    @foreach (var c in Affichage.Valeurs<Conformite>())
     {
         <a class="@(choix == c ? "is-active" : "")" asp-route-conformite="@c">@c.Libelle()</a>
     }

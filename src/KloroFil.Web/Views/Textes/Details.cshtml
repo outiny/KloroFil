@@ -115,7 +115,7 @@
                                 @if (saisir)
                                 {
                                     <a class="btn btn--secondaire btn--petit" asp-action="Exigence" asp-route-id="@e.Id" asp-route-texteId="@Model.Id">Évaluer</a>
-                                    @if (e.Conformite is Conformite.NonConforme or Conformite.Partielle)
+                                    @if (e.Conformite is Conformite.NonConforme or Conformite.NcEnCours)
                                     {
                                         <a class="btn btn--secondaire btn--petit" asp-controller="Actions" asp-action="Edition" asp-route-exigenceId="@e.Id">+ Action</a>
                                     }

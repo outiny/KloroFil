@@ -22,9 +22,14 @@ public static class Affichage
     public static string Libelle(this Enum valeur) => Libelles.GetOrAdd(valeur, v =>
         v.GetType().GetField(v.ToString())?.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? v.ToString());
 
-    /// <summary>Liste déroulante d'une énumération (libellés français).</summary>
+    /// <summary>Valeurs d'une énumération dans l'ordre d'affichage ([Display(Order = …)], sinon l'ordre de déclaration).</summary>
+    public static IEnumerable<T> Valeurs<T>() where T : struct, Enum =>
+        Enum.GetValues<T>().Select((v, i) => (v, Ordre: typeof(T).GetField(v.ToString())?.GetCustomAttribute<DisplayAttribute>()?.GetOrder() ?? 1000 + i))
+            .OrderBy(x => x.Ordre).Select(x => x.v);
+
+    /// <summary>Liste déroulante d'une énumération (libellés français, ordre d'affichage).</summary>
     public static IEnumerable<SelectListItem> Choix<T>(T? selection = null) where T : struct, Enum =>
-        Enum.GetValues<T>().Select(v => new SelectListItem(v.Libelle(), v.ToString(), selection.HasValue && v.Equals(selection.Value)));
+        Valeurs<T>().Select(v => new SelectListItem(v.Libelle(), v.ToString(), selection.HasValue && v.Equals(selection.Value)));
 
     public static IEnumerable<SelectListItem> Choix<T>(T selection) where T : struct, Enum => Choix<T>((T?)selection);
 
@@ -42,10 +47,11 @@ public static class Affichage
     public static string Couleur(this Conformite c) => c switch
     {
         Conformite.Conforme => "vert",
-        Conformite.Partielle => "orange",
         Conformite.NonConforme => "rouge",
-        Conformite.SansObjet => "gris",
-        _ => "bleu"
+        Conformite.NcEnCours => "orange",
+        Conformite.ASurveiller => "jaune",
+        Conformite.NonConcerne => "gris",
+        _ => "bleu"   // en cours d'analyse
     };
 
     public static string Couleur(this StatutVeille s) => s switch

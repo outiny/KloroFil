@@ -102,7 +102,7 @@ recherchés sans limite de date selon le régime le plus élevé des sites (avec
 lit la version **en vigueur** du texte (API `/consult/lawDecree`) et crée une exigence par article et par paragraphe
 numéroté des annexes (« Annexe I – 5.1 », avec l'intitulé des niveaux supérieurs). Les articles abrogés, l'article
 d'exécution et les points vides du modèle d'arrêté sont ignorés. « Mettre à jour depuis Légifrance » ajoute les
-nouveaux points et met à jour ceux dont la rédaction a changé : ils repassent « À évaluer », l'évaluation précédente
+nouveaux points et met à jour ceux dont la rédaction a changé : ils repassent « En cours d'analyse », l'évaluation précédente
 étant notée dans les preuves ; rien n'est supprimé. Si une annexe n'est publiée qu'au Bulletin officiel du ministère
 (non reproduite sur Légifrance), un message invite à la consulter sur AIDA.
 

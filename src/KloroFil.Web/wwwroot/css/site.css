@@ -115,6 +115,7 @@ a.kpi:hover { border-color: var(--vert-moyen); }
 .badge--vert { background: #DDEFC8; color: #2F5410; }
 .badge--vert-clair { background: #EEF6E3; color: #4D7D1A; }
 .badge--orange { background: #FFF0D6; color: #8A5300; }
+.badge--jaune { background: #FFF8C5; color: #6B5B00; }
 .badge--rouge { background: #FCE6E4; color: var(--rouge-texte); }
 
 /* --- Alertes -------------------------------------------------------------- */

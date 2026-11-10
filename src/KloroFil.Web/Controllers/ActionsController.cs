@@ -119,7 +119,7 @@ public class ActionsController(KloroFilDbContext db) : Controller
             .OrderBy(t => t.Titre).Select(t => new { t.Id, Libelle = t.Titre.Length > 120 ? t.Titre.Substring(0, 120) + "…" : t.Titre }).ToListAsync(),
             "Id", "Libelle", a.TexteReglementaireId);
         ViewBag.Exigences = new SelectList(await db.Exigences
-            .Where(e => e.Conformite == Conformite.NonConforme || e.Conformite == Conformite.Partielle || e.Id == a.ExigenceId)
+            .Where(e => e.Conformite == Conformite.NonConforme || e.Conformite == Conformite.NcEnCours || e.Id == a.ExigenceId)
             .OrderBy(e => e.Article).Select(e => new { e.Id, Libelle = (e.Article ?? "") + " " + (e.Description.Length > 110 ? e.Description.Substring(0, 110) + "…" : e.Description) }).ToListAsync(),
             "Id", "Libelle", a.ExigenceId);
         ViewBag.Prescriptions = new SelectList(await db.Prescriptions.Include(p => p.Site).OrderBy(p => p.Intitule)
