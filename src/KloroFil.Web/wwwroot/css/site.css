@@ -240,3 +240,6 @@ tr.ligne-ancre:target td { animation: surlignage 2.5s ease-out; }
 .etiquette-source--importe { background: #ECEDE8; color: var(--guery-gris); }
 .etiquette-source--saisie { background: var(--saisie-fond); color: var(--saisie); border: 1px solid var(--saisie-bordure); }
 .legende-sources { display: flex; gap: 14px; flex-wrap: wrap; padding: 8px 16px 0; font-size: .85rem; color: var(--texte-doux); }
+
+/* Titres des textes réglementaires (souvent très longs) : police normale, non grasse. */
+.reference.titre-texte { font-weight: 400; }

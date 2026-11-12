@@ -33,7 +33,7 @@
                 {
                     var derniere = e.Evaluation(PhaseEvaluation.Recepisse) ?? e.Evaluation(PhaseEvaluation.Legislation);
                     <tr>
-                        <td><a class="reference" asp-action="Details" asp-route-id="@e.TexteReglementaireId">@e.Texte?.Titre</a></td>
+                        <td><a class="reference titre-texte" asp-action="Details" asp-route-id="@e.TexteReglementaireId">@e.Texte?.Titre</a></td>
                         <td style="white-space:nowrap">@e.Article.Texte()</td>
                         <td class="texte-long">@(e.Description.Length > 400 ? e.Description[..400] + "…" : e.Description)</td>
                         @foreach (var phase in Affichage.Valeurs<PhaseEvaluation>())

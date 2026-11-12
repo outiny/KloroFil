@@ -85,7 +85,7 @@
                     <tr>
                         <td>@((t.DatePublication ?? t.DateDetection).Date())</td>
                         <td>
-                            <a class="reference" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
+                            <a class="reference titre-texte" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
                             @if (t.Reference is not null) { <div class="discret">@t.Reference</div> }
                         </td>
                         <td>@t.Type.Libelle()</td>

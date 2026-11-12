@@ -67,7 +67,7 @@
                     @foreach (var (texte, avancement) in Model.AvancementParTexte.Take(10))
                     {
                         <tr>
-                            <td><a class="reference" asp-controller="Textes" asp-action="Details" asp-route-id="@texte.Id">@(texte.Titre.Length > 160 ? texte.Titre[..160] + "…" : texte.Titre)</a></td>
+                            <td><a class="reference titre-texte" asp-controller="Textes" asp-action="Details" asp-route-id="@texte.Id">@(texte.Titre.Length > 160 ? texte.Titre[..160] + "…" : texte.Titre)</a></td>
                             <td class="nombre">@avancement.Total</td>
                             <td style="width:260px"><partial name="_AvancementCompact" model="avancement" /></td>
                         </tr>
@@ -98,7 +98,7 @@
                         {
                             <tr>
                                 <td>
-                                    <a class="reference" asp-controller="Textes" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
+                                    <a class="reference titre-texte" asp-controller="Textes" asp-action="Details" asp-route-id="@t.Id">@t.Titre</a>
                                     <div class="discret">@t.Domaine.Libelle() · @((t.DatePublication ?? t.DateDetection).Date())
                                         @if (t.RubriquesConcernees is not null) { <text>· rubrique(s) @t.RubriquesConcernees</text> }</div>
                                 </td>
