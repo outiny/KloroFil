@@ -6,8 +6,8 @@
     List<ActionQse> actions = ViewBag.Actions;
 }
 <div class="entete-page">
-    <div style="max-width:900px">
-        <h1 class="titre">@Model.Titre</h1>
+    <div class="entete-texte">
+        <h1 class="titre titre--texte">@Model.Titre</h1>
         <p class="sous-titre">
             <span class="badge badge--@Model.Statut.Couleur()">@Model.Statut.Libelle()</span>
             · @Model.Type.Libelle() · @Model.Domaine.Libelle()

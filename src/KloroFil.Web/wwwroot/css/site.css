@@ -243,3 +243,7 @@ tr.ligne-ancre:target td { animation: surlignage 2.5s ease-out; }
 
 /* Titres des textes réglementaires (souvent très longs) : police normale, non grasse. */
 .reference.titre-texte { font-weight: 400; }
+
+/* En-tête d'un texte réglementaire : titre long sur toute la largeur, police plus petite et non grasse. */
+.entete-texte { flex: 1 1 100%; min-width: 0; }
+.titre--texte { font-size: 1.15rem; font-weight: 400; line-height: 1.4; }

@@ -8,7 +8,7 @@
     var ancre = nouvelle ? "exigences" : $"exigence-{Model.Exigence.Id}";
 }
 <div class="entete-page">
-    <div style="max-width:900px">
+    <div class="entete-texte">
         <h1 class="titre">@(nouvelle ? "Nouvelle exigence" : "Évaluation de conformité" + (Model.Exigence.Article is null ? "" : " – " + Model.Exigence.Article))</h1>
         <p class="sous-titre">@Model.TitreTexte</p>
     </div>
