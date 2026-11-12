@@ -34,14 +34,14 @@
 }
 
 <div class="onglets">
-    <a class="@(statut is null ? "is-active" : "")" asp-route-statut="" asp-route-domaine="@domaine">Tous</a>
+    <a class="@(statut is null ? "is-active" : "")" asp-route-statut="@TextesController.TousLesStatuts" asp-route-domaine="@domaine">Tous</a>
     @foreach (var s in Enum.GetValues<StatutVeille>())
     {
         <a class="@(statut == s ? "is-active" : "")" asp-route-statut="@s" asp-route-domaine="@domaine">@s.Libelle() (@N(s))</a>
     }
 </div>
 <form method="get" class="filtres">
-    <input type="hidden" name="statut" value="@statut" />
+    <input type="hidden" name="statut" value="@(statut?.ToString() ?? TextesController.TousLesStatuts)" />
     <select name="domaine" asp-items="Affichage.Choix(domaine)" onchange="this.form.submit()"><option value="">Tous les domaines</option></select>
     <input type="search" name="q" value="@ViewBag.Q" placeholder="Titre, NOR, rubrique…" />
     <button class="btn btn--secondaire">Filtrer</button>
@@ -60,7 +60,11 @@
         string? q = ViewBag.Q;
         var ressembleNor = q is { Length: >= 8 and <= 20 } && q.Trim().All(char.IsLetterOrDigit) && q.Trim().Any(char.IsDigit) && q.Trim().Any(char.IsLetter);
         <div class="vide">
-            Aucun texte pour ces critères.
+            Aucun texte @(statut is null ? "" : "« " + statut.Value.Libelle() + " » ")pour ces critères.
+            @if (statut is not null)
+            {
+                <a asp-route-statut="@TextesController.TousLesStatuts" asp-route-domaine="@domaine" asp-route-q="@ViewBag.Q">Chercher dans tous les textes</a>
+            }
             @if (gerer && ressembleNor)
             {
                 <form asp-action="ImporterNor" method="post" class="actions" style="margin-top:10px">

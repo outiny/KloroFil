@@ -84,7 +84,7 @@
 
 <div class="colonnes">
     <div class="carte">
-        <h2 class="carte__titre">Dernières nouveautés de la veille <a asp-controller="Textes" asp-action="Index">Tout voir</a></h2>
+        <h2 class="carte__titre">Dernières nouveautés de la veille <a asp-controller="Textes" asp-action="Index" asp-route-statut="@TextesController.TousLesStatuts">Tout voir</a></h2>
         @if (Model.DerniersTextes.Count == 0)
         {
             <p class="vide">Aucun texte. Déclarez des <a asp-controller="Sources" asp-action="Index">sources de veille</a> ou ajoutez un texte manuellement.</p>

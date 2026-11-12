@@ -10,7 +10,22 @@ namespace KloroFil.Web.Controllers;
 /// <summary>Veille réglementaire : registre des textes, analyse d'applicabilité et exigences à évaluer.</summary>
 public partial class TextesController(KloroFilDbContext db) : Controller
 {
-    public async Task<IActionResult> Index(StatutVeille? statut, Domaine? domaine, string? q)
+    /// <summary>Valeur du paramètre « statut » pour afficher tous les textes (sans paramètre : textes applicables).</summary>
+    public const string TousLesStatuts = "Tous";
+
+    public async Task<IActionResult> Index(string? statut, Domaine? domaine, string? q)
+    {
+        // Par défaut, seuls les textes applicables ; « Tous » lève le filtre.
+        StatutVeille? filtre = statut switch
+        {
+            null => StatutVeille.Applicable,
+            "" or TousLesStatuts => null,
+            _ => Enum.TryParse<StatutVeille>(statut, out var s) ? s : StatutVeille.Applicable
+        };
+        return await AfficherAsync(filtre, domaine, q);
+    }
+
+    private async Task<IActionResult> AfficherAsync(StatutVeille? statut, Domaine? domaine, string? q)
     {
         var requete = db.Textes.AsNoTracking().Include(t => t.Exigences).AsQueryable();
         if (statut is not null) requete = requete.Where(t => t.Statut == statut);
@@ -148,12 +163,12 @@ public partial class TextesController(KloroFilDbContext db) : Controller
         catch (LectureFluxException ex)
         {
             TempData["Erreur"] = ex.Message;
-            return RedirectToAction(nameof(Index), new { q = nor });
+            return RedirectToAction(nameof(Index), new { statut = TousLesStatuts, q = nor });
         }
         if (e is null)
         {
             TempData["Erreur"] = $"Aucun texte du Journal officiel ne porte le NOR {nor}.";
-            return RedirectToAction(nameof(Index), new { q = nor });
+            return RedirectToAction(nameof(Index), new { statut = TousLesStatuts, q = nor });
         }
 
         existant = await db.Textes.FirstOrDefaultAsync(t => t.Url == e.Lien, ct);
