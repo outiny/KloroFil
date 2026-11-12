@@ -6,6 +6,20 @@
     var texteId = Model.Exigence.TexteReglementaireId;
     // Ancre de la ligne de l'exigence dans la fiche du texte (ou du tableau pour une nouvelle exigence).
     var ancre = nouvelle ? "exigences" : $"exigence-{Model.Exigence.Id}";
+
+    // Texte replié par défaut : on n'affiche que son intitulé (1re ligne courte) ou son début.
+    static string TitreExigence(string texte)
+    {
+        var premiere = texte.Split('\n', 2)[0].Trim();
+        return premiere.Length <= 120 ? premiere : premiere[..117] + "…";
+    }
+
+    // Contenu affiché une fois ouvert : sans l'intitulé s'il est déjà entier dans la barre.
+    static string CorpsExigence(string texte)
+    {
+        var parties = texte.Split('\n', 2);
+        return parties.Length == 2 && parties[0].Trim().Length <= 120 ? parties[1] : texte;
+    }
 }
 <div class="entete-page">
     <div class="entete-texte">
@@ -44,7 +58,10 @@
             @* Texte officiel : affiché tel quel ; un gestionnaire peut encore le réécrire (il devient alors une saisie). *@
             <div class="champ champ--large">
                 <label>Exigence @Model.Exigence.Article <span class="etiquette-source etiquette-source--importe">Importé de Légifrance</span></label>
-                <div class="bloc-importe texte-long">@Model.Exigence.Description</div>
+                <details class="texte-repliable bloc-importe">
+                    <summary><strong>@TitreExigence(Model.Exigence.Description)</strong> <span class="discret">– afficher le texte</span></summary>
+                    <div class="texte-long">@CorpsExigence(Model.Exigence.Description)</div>
+                </details>
                 @if (gerer)
                 {
                     <details style="margin-top:6px">
@@ -67,7 +84,7 @@
         }
         else
         {
-            <div class="champ champ--large"><label>Exigence @Model.Exigence.Article <span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></label><div class="bloc-saisie texte-long">@Model.Exigence.Description</div></div>
+            <div class="champ champ--large"><label>Exigence @Model.Exigence.Article <span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></label><details class="texte-repliable bloc-saisie"><summary><strong>@TitreExigence(Model.Exigence.Description)</strong> <span class="discret">– afficher le texte</span></summary><div class="texte-long">@CorpsExigence(Model.Exigence.Description)</div></details></div>
         }
 
         <p class="separateur">Évaluation – @Model.Phase.Libelle() <span class="etiquette-source etiquette-source--saisie">Saisi dans KloroFil</span></p>

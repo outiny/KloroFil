@@ -247,3 +247,11 @@ tr.ligne-ancre:target td { animation: surlignage 2.5s ease-out; }
 /* En-tête d'un texte réglementaire : titre long sur toute la largeur, police plus petite et non grasse. */
 .entete-texte { flex: 1 1 100%; min-width: 0; }
 .titre--texte { font-size: 1.15rem; font-weight: 400; line-height: 1.4; }
+
+/* Texte d'une exigence replié par défaut (écran d'évaluation) : clic sur l'intitulé pour l'ouvrir / le fermer. */
+.texte-repliable > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 6px; }
+.texte-repliable > summary::-webkit-details-marker { display: none; }
+.texte-repliable > summary::before { content: "▸"; color: var(--vert); font-size: .9rem; transition: transform .15s; display: inline-block; }
+.texte-repliable[open] > summary::before { transform: rotate(90deg); }
+.texte-repliable[open] > summary .discret { display: none; }
+.texte-repliable > div { margin-top: 8px; }
