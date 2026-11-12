@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Manifeste d outils dotnet local (non partage)
+dotnet-tools.json
