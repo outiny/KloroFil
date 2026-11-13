@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KloroFil">
+  <!-- Logo KloroFil : G vert (dégradé) dont l'extrémité pousse en feuille (environnement), autour d'un bouclier
+       bleu Guéry en 2 facettes (sécurité) marqué d'une coche blanche (conformité ICPE / ISO 14001) -->
+  <defs>
+    <linearGradient id="kf-anneau" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#1F6B30"/>
+      <stop offset="1" stop-color="#3E9B3A"/>
+    </linearGradient>
+    <linearGradient id="kf-feuille" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#4FA83A"/>
+      <stop offset="1" stop-color="#8CCB4F"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="504" height="504" rx="110" fill="#FFFFFF" stroke="#E2DFD8" stroke-width="8"/>
+
+  <!-- G (même tracé que GueryShip) -->
+  <path d="M355 157 A140 140 0 1 0 396 256 L300 256" fill="none" stroke="url(#kf-anneau)" stroke-width="56"/>
+
+  <!-- Feuille qui prolonge le haut du G, avec sa nervure -->
+  <path d="M335 177 C350 118 395 92 452 84 C450 140 425 172 375 137 Z" fill="url(#kf-feuille)"/>
+  <path d="M357 157 C385 128 412 108 440 94" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Bouclier en 2 facettes + coche -->
+  <path d="M215 186 L215 330 C185 318 160 296 160 256 L160 206 Z" fill="#2A64B8"/>
+  <path d="M215 186 L270 206 L270 256 C270 296 245 318 215 330 Z" fill="#154B99"/>
+  <path d="M188 258 L208 278 L244 238" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

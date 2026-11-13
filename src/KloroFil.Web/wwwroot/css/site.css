@@ -165,7 +165,7 @@ a.kpi:hover { border-color: var(--vert-moyen); }
 .connexion__visuel { background: var(--degrade); color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 48px 34px; position: relative; overflow: hidden; }
 .connexion__visuel::after { content: ""; position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border-radius: 50%; border: 50px solid rgba(255,255,255,.06); }
 .connexion__logos { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
-.connexion__logos .icone { width: 50px; height: 50px; background: #fff; border-radius: 50%; padding: 3px; }
+.connexion__logos .icone { width: 56px; height: 56px; border-radius: 12px; }
 .connexion__logos .guery { height: 50px; filter: brightness(0) invert(1); }
 .connexion__titre { font-size: clamp(2.2rem, 4vw, 3.1rem); font-weight: 700; letter-spacing: .14em; line-height: 1.2; margin: 0 0 22px; text-transform: uppercase; }
 .connexion__texte { max-width: 380px; line-height: 1.6; margin: 0; font-size: .98rem; }
