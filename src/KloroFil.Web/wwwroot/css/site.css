@@ -38,8 +38,7 @@ a { color: var(--vert); }
 .entete { background: #fff; padding: 10px 24px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
 .marque { display: inline-flex; align-items: center; gap: 14px; text-decoration: none; }
 .marque__icone { height: 52px; width: 52px; }
-.marque__logo { height: 52px; width: auto; }
-.marque__appli { display: flex; flex-direction: column; line-height: 1; border-left: 1px solid var(--bordure); padding-left: 14px; }
+.marque__appli { display: flex; flex-direction: column; line-height: 1; }
 .marque__nom { font-size: 1.9rem; font-weight: 600; background: var(--degrade); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: .01em; }
 .marque__baseline { font-size: .8rem; color: var(--texte-doux); font-weight: 300; font-style: italic; margin-top: 3px; }
 .compte { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -187,7 +186,6 @@ a.kpi:hover { border-color: var(--vert-moyen); }
 }
 @media (max-width: 640px) {
     .entete { padding: 10px 14px; }
-    .marque__logo { display: none; }
     .contenu { padding: 14px; }
     .nav { padding: 0 8px; }
     .filtres input, .filtres select { min-width: 0; width: 100%; }
